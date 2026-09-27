@@ -78,7 +78,8 @@ Real Estate OS
 2. Confirma que se crean las tablas definidas en el schema.
 3. Ejecuta `runSystemDiagnostics()`.
 4. Ejecuta `seedDemoData()` únicamente en DEV.
-5. Revisa que el portafolio ficticio tenga propiedades, unidades, contratos, cargos, pagos y relaciones.
+5. Ejecuta `runDemoSmokeTest()`.
+6. El smoke test debe confirmar que dos rentas están cubiertas y que el caso de pago parcial conserva **$6,500 MXN pendientes**.
 
 Los datos demo son sintéticos y no representan el portafolio real.
 
