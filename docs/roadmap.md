@@ -14,7 +14,7 @@ El objetivo es evitar construir muchas funciones inconexas. Cada fase debe termi
 - [x] Diseño Market Intelligence
 - [x] Repositorios de referencia
 - [ ] ADRs iniciales
-- [ ] README público del proyecto
+- [x] README público del proyecto
 
 **Salida:** documentación coherente y versionada.
 
@@ -24,15 +24,15 @@ El objetivo es evitar construir muchas funciones inconexas. Cada fase debe termi
 
 **Objetivo:** poder crear un entorno DEV reproducible.
 
-- [ ] package.json
-- [ ] clasp
-- [ ] appsscript.json
-- [ ] .gitignore
-- [ ] .claspignore
-- [ ] config.example
-- [ ] estructura src/
-- [ ] pruebas básicas
-- [ ] Google Sheet DEV
+- [x] package.json
+- [x] clasp
+- [x] appsscript.json
+- [x] .gitignore
+- [x] .claspignore
+- [x] configuración de ejemplo (.clasp.example.json)
+- [x] estructura src/
+- [x] pruebas básicas (schema validator + demo smoke test)
+- [ ] Google Sheet DEV — pendiente únicamente de prueba integrada con la cuenta Google del operador
 
 Implementar:
 
@@ -41,6 +41,8 @@ setupRealEstateOS()
 ```
 
 Debe crear pestañas, headers, validaciones, formatos y Settings.
+
+**Estado de implementación:** código completo en `feat/boostrap-v1`; falta ejecutar la prueba integrada contra un Google Sheet DEV real.
 
 **Salida:** un Sheet DEV regenerable desde código.
 
