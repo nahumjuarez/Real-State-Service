@@ -32,7 +32,7 @@ El objetivo es evitar construir muchas funciones inconexas. Cada fase debe termi
 - [x] configuración de ejemplo (.clasp.example.json)
 - [x] estructura src/
 - [x] pruebas básicas (schema validator + demo smoke test)
-- [ ] Google Sheet DEV — pendiente únicamente de prueba integrada con la cuenta Google del operador
+- [x] Google Sheet DEV — prueba integrada completada
 
 Implementar:
 
@@ -42,7 +42,7 @@ setupRealEstateOS()
 
 Debe crear pestañas, headers, validaciones, formatos y Settings.
 
-**Estado de implementación:** código completo en `feat/boostrap-v1`; falta ejecutar la prueba integrada contra un Google Sheet DEV real.
+**Estado de implementación:** Bootstrap v1 validado contra Google Sheet DEV real.
 
 **Salida:** un Sheet DEV regenerable desde código.
 
@@ -100,11 +100,37 @@ Orden:
 - [x] registrar mantenimiento;
 - [x] altas base de Party, Property y Unit;
 - [x] smoke test de plantilla/payload;
-- [ ] prueba visual integrada en Google Sheet DEV.
+- [x] prueba visual integrada en Google Sheet DEV.
 
-**Estado de implementación:** código completo en `feat/operator-ui-v1`; pendiente prueba visual integrada.
+**Estado de implementación:** Operator UI v1 validado en DEV. HtmlService requiere evitar multi-login de Google; existe fallback nativo para cobranza.
 
 **Salida:** interfaz operativa v0.2-alpha.
+
+---
+
+## Fase 3C — Full Operations + Production Readiness
+
+**Objetivo:** poder operar el portafolio real de punta a punta.
+
+- [x] cierre y terminación de contratos;
+- [x] liberación de unidades;
+- [x] renovación/activación de contrato;
+- [x] reversa y anulación de pagos;
+- [x] liquidación de depósitos;
+- [x] ciclo completo de mantenimiento;
+- [x] CapEx separado de Expense;
+- [x] generación mensual automática idempotente;
+- [x] controles correspondientes en Operator UI;
+- [x] fallback nativo de cobranza;
+- [x] guía de rollout PROD;
+- [ ] smoke test Full Operations en Google Sheet DEV;
+- [ ] prueba manual de acciones críticas;
+- [ ] creación de instancia PROD;
+- [ ] carga inicial del portafolio real.
+
+**Estado de implementación:** backend/UI completos en `feat/full-operations-v1`; pendiente validación integrada y rollout.
+
+**Salida:** Real Estate OS v0.3 listo para operación real.
 
 ---
 
@@ -268,17 +294,17 @@ El dominio y reglas no deberían cambiar por esta migración.
 # Prioridad inmediata
 
 ```text
-docs
+Full Operations DEV
  ↓
-schema
+smoke test + aceptación manual
  ↓
-setupRealEstateOS()
+Google Sheet PROD
  ↓
-Google Sheet DEV
+carga inicial del portafolio
  ↓
-lease + ledger + payment
+operación diaria
  ↓
-dashboard operativo
+documentos / backups / CFDI
 ```
 
 No iniciar Market Intelligence avanzada ni PAC antes de que el ledger operativo sea confiable.
