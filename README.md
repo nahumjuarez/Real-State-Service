@@ -24,7 +24,7 @@ Google Sheets es el almacenamiento operativo V1. El dominio está diseñado para
 
 ## Requisitos
 
-- Node.js 20 o superior
+- Node.js 22 o superior
 - npm
 - Cuenta de Google
 - Google Apps Script API habilitada
