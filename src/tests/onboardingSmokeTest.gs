@@ -41,6 +41,12 @@ function runOnboardingSmokeTest() {
     email: "tenant-" + token.toLowerCase() + "@example.test"
   });
 
+  var guarantor = createParty({
+    partyType: "PERSON",
+    legalName: "Onboarding Guarantor " + token,
+    preferredName: "Guarantor " + token
+  });
+
   var propertyBundle = createPropertyOnboardingBundle({
     property: {
       propertyName: "Onboarding Property " + token,
@@ -94,6 +100,9 @@ function runOnboardingSmokeTest() {
   var leaseBundle = createLeaseOnboardingBundle({
     unitId: unit.unit_id,
     tenantPartyId: tenant.party_id,
+    additionalParties: [
+      { partyId: guarantor.party_id, role: "GUARANTOR" }
+    ],
     startDate: leaseStart,
     endDate: leaseEnd,
     baseRent: 9500,
@@ -114,6 +123,19 @@ function runOnboardingSmokeTest() {
   check(
     Number(leaseBundle.deposit.amount_held) === 9500,
     "Initial deposit must remain HELD."
+  );
+
+  var leasePartyRows = findRecordsByField_(
+    "LeaseParties",
+    "lease_id",
+    leaseBundle.lease.lease_id
+  );
+  check(
+    leasePartyRows.some(function (entry) {
+      return String(entry.party_id) === String(guarantor.party_id) &&
+        String(entry.role) === "GUARANTOR";
+    }),
+    "Guarantor must be persisted as a lease party."
   );
 
   var access = createAccessProfile({
