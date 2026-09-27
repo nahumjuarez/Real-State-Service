@@ -139,20 +139,21 @@ Orden:
 **Objetivo:** cargar el portafolio real de forma guiada, segura y verificable antes de activar automatizaciones.
 
 - [x] panel dedicado de onboarding;
-- [x] alta de Parties;
-- [x] alta de Properties con ownership inicial;
+- [x] alta y edición auditada de Parties;
+- [x] alta y edición auditada de Properties con ownership inicial;
 - [x] ownership adicional y cierre histórico;
 - [x] validación de ownership concurrente <=100%;
-- [x] alta detallada de Units;
+- [x] alta y edición auditada de Units;
 - [x] carga de contratos vigentes;
 - [x] depósito inicial integrado al alta del contrato;
 - [x] registro posterior de depósitos faltantes;
 - [x] creación de renovaciones DRAFT;
 - [x] activación de renovaciones;
-- [x] AccessProfiles con referencias externas a bóveda;
+- [x] AccessProfiles con referencias externas a bóveda y edición auditada;
 - [x] rechazo explícito de passwords/PIN/tokens inline;
 - [x] detector de gaps de onboarding;
 - [x] automatización mensual bloqueada en PROD hasta readiness;
+- [x] locks de concurrencia para depósitos, cierre/activación de leases y reversa/void de pagos;
 - [x] smoke test sintético de onboarding;
 - [ ] validación integrada en Google Sheet DEV;
 - [ ] despliegue de schema 0.2.0 en PROD;
