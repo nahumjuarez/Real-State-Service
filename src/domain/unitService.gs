@@ -16,7 +16,7 @@ function createUnit(input) {
     bedrooms:
       data.bedrooms === undefined || data.bedrooms === ""
         ? ""
-        : requirePositiveNumber_(data.bedrooms, "Bedrooms", true),
+        : requireIntegerBetween_(data.bedrooms, 0, 100, "Bedrooms"),
     bathrooms:
       data.bathrooms === undefined || data.bathrooms === ""
         ? ""
