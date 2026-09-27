@@ -1,0 +1,699 @@
+<script>
+(function () {
+  var state = null;
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    $("periodInput").value = currentMonth_();
+    setDefaultDates_();
+    bindTabs_();
+    bindToolbar_();
+    bindForms_();
+    bindDependentSelects_();
+    loadState_();
+  });
+
+  function currentMonth_() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+
+  function today_() {
+    var d = new Date();
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+
+  function setDefaultDates_() {
+    $("paymentDate").value = today_();
+    $("expenseDate").value = today_();
+
+    var start = new Date();
+    var end = new Date(start.getFullYear() + 1, start.getMonth(), start.getDate());
+    $("leaseStart").value = toInputDate_(start);
+    $("leaseEnd").value = toInputDate_(end);
+  }
+
+  function toInputDate_(date) {
+    return date.getFullYear() + "-" +
+      String(date.getMonth() + 1).padStart(2, "0") + "-" +
+      String(date.getDate()).padStart(2, "0");
+  }
+
+  function bindTabs_() {
+    document.querySelectorAll(".tab").forEach(function (button) {
+      button.addEventListener("click", function () {
+        document.querySelectorAll(".tab").forEach(function (item) {
+          item.classList.remove("active");
+        });
+        document.querySelectorAll(".tab-panel").forEach(function (panel) {
+          panel.classList.remove("active");
+        });
+        button.classList.add("active");
+        $("tab-" + button.dataset.tab).classList.add("active");
+      });
+    });
+  }
+
+  function activateTab_(name) {
+    var button = document.querySelector('.tab[data-tab="' + name + '"]');
+    if (button) button.click();
+  }
+
+  function bindToolbar_() {
+    $("refreshBtn").addEventListener("click", loadState_);
+    $("periodInput").addEventListener("change", loadState_);
+    $("generateBtn").addEventListener("click", function () {
+      runAction_("Generando cargos…", "generateCharges", $("periodInput").value)
+        .then(function (result) {
+          showToast_(
+            "Cargos creados: " + result.created.length +
+            ". Omitidos: " + result.skipped.length + "."
+          );
+          return loadState_(false);
+        });
+    });
+  }
+
+  function bindDependentSelects_() {
+    $("leaseProperty").addEventListener("change", function () {
+      renderUnitSelect_("leaseUnit", $("leaseProperty").value, true);
+    });
+    $("expenseProperty").addEventListener("change", function () {
+      renderUnitSelect_("expenseUnit", $("expenseProperty").value, false);
+    });
+    $("workProperty").addEventListener("change", function () {
+      renderUnitSelect_("workUnit", $("workProperty").value, false);
+    });
+  }
+
+  function bindForms_() {
+    $("paymentForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var charge = findCharge_($("paymentCharge").value);
+      if (!charge) return showToast_("Selecciona un cargo.", true);
+
+      var payload = {
+        chargeId: charge.chargeId,
+        partyId: charge.tenantId,
+        amount: $("paymentAmount").value,
+        dateReceived: $("paymentDate").value,
+        paymentMethod: $("paymentMethod").value,
+        reference: $("paymentReference").value,
+        notes: $("paymentNotes").value
+      };
+
+      runAction_("Registrando pago…", "payment", payload)
+        .then(function (result) {
+          showToast_(
+            "Pago registrado. Saldo: " +
+            money_(result.chargeBalance.outstandingAmount)
+          );
+          $("paymentReference").value = "";
+          $("paymentNotes").value = "";
+          return loadState_(false);
+        });
+    });
+
+    $("leaseForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = {
+        unitId: $("leaseUnit").value,
+        tenantPartyId: $("leaseTenant").value,
+        startDate: $("leaseStart").value,
+        endDate: $("leaseEnd").value,
+        baseRent: $("leaseRent").value,
+        depositRequired: $("leaseDeposit").value,
+        paymentDueDay: $("leaseDueDay").value,
+        rentAdjustmentRule: $("leaseAdjustment").value
+      };
+
+      runAction_("Creando contrato…", "lease", payload)
+        .then(function () {
+          showToast_("Contrato creado correctamente.");
+          $("leaseRent").value = "";
+          $("leaseDeposit").value = "";
+          $("leaseAdjustment").value = "";
+          return loadState_(false);
+        });
+    });
+
+    $("expenseForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = {
+        propertyId: $("expenseProperty").value,
+        unitId: $("expenseUnit").value,
+        expenseCategory: $("expenseCategory").value,
+        description: $("expenseDescription").value,
+        date: $("expenseDate").value,
+        amount: $("expenseAmount").value,
+        taxAmount: $("expenseTax").value,
+        paymentMethod: $("expenseMethod").value,
+        status: "PAID"
+      };
+
+      runAction_("Registrando gasto…", "expense", payload)
+        .then(function () {
+          showToast_("Gasto registrado.");
+          $("expenseDescription").value = "";
+          $("expenseAmount").value = "";
+          $("expenseTax").value = "0";
+          return loadState_(false);
+        });
+    });
+
+    $("workOrderForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = {
+        propertyId: $("workProperty").value,
+        unitId: $("workUnit").value,
+        reportedBy: $("workReportedBy").value,
+        category: $("workCategory").value,
+        description: $("workDescription").value,
+        priority: $("workPriority").value,
+        estimatedCost: $("workEstimatedCost").value
+      };
+
+      runAction_("Creando orden…", "workOrder", payload)
+        .then(function () {
+          showToast_("Orden de mantenimiento creada.");
+          $("workCategory").value = "";
+          $("workDescription").value = "";
+          $("workEstimatedCost").value = "";
+          return loadState_(false);
+        });
+    });
+
+    $("partyForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = {
+        partyType: $("partyType").value,
+        legalName: $("partyLegalName").value,
+        preferredName: $("partyPreferredName").value,
+        email: $("partyEmail").value,
+        phone: $("partyPhone").value
+      };
+
+      runAction_("Creando registro…", "party", payload)
+        .then(function () {
+          showToast_("Persona/organización creada.");
+          event.target.reset();
+          return loadState_(false);
+        });
+    });
+
+    $("propertyForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = {
+        propertyName: $("propertyName").value,
+        propertyType: $("propertyType").value,
+        municipality: $("propertyMunicipality").value,
+        state: $("propertyState").value,
+        neighborhood: $("propertyNeighborhood").value,
+        street: $("propertyStreet").value,
+        country: "MX",
+        status: "ACTIVE"
+      };
+
+      runAction_("Creando propiedad…", "property", payload)
+        .then(function () {
+          showToast_("Propiedad creada.");
+          $("propertyName").value = "";
+          $("propertyNeighborhood").value = "";
+          $("propertyStreet").value = "";
+          return loadState_(false);
+        });
+    });
+
+    $("unitForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = {
+        propertyId: $("unitProperty").value,
+        unitName: $("unitName").value,
+        unitType: $("unitType").value,
+        bedrooms: $("unitBedrooms").value,
+        bathrooms: $("unitBathrooms").value,
+        areaM2: $("unitArea").value,
+        status: "VACANT"
+      };
+
+      runAction_("Creando unidad…", "unit", payload)
+        .then(function () {
+          showToast_("Unidad creada.");
+          $("unitName").value = "";
+          $("unitBedrooms").value = "";
+          $("unitBathrooms").value = "";
+          $("unitArea").value = "";
+          return loadState_(false);
+        });
+    });
+
+    $("paymentCharge").addEventListener("change", updatePaymentChargeInfo_);
+  }
+
+  function loadState_(showLoader) {
+    if (showLoader !== false) setLoading_(true, "Cargando operación…");
+
+    return server_("state", $("periodInput").value)
+      .then(function (data) {
+        state = data;
+        renderAll_();
+        setLoading_(false);
+        return data;
+      })
+      .catch(function (error) {
+        setLoading_(false);
+        showToast_(error.message || String(error), true);
+        throw error;
+      });
+  }
+
+  function renderAll_() {
+    $("instanceMeta").textContent =
+      (state.app.environment || "—") + " · v" + state.app.version +
+      " · " + state.app.currency;
+
+    renderSummary_();
+    renderCharges_();
+    renderLeases_();
+    renderExpenses_();
+    renderWorkOrders_();
+    renderSelects_();
+    updatePaymentChargeInfo_();
+  }
+
+  function renderSummary_() {
+    var s = state.summary;
+    var metrics = [
+      ["Contratos activos", s.activeLeases, ""],
+      ["Unidades ocupadas", s.occupiedUnits, ""],
+      ["Renta cargada", money_(s.totalCharged), ""],
+      ["Cobrado", money_(s.totalAllocated), "good"],
+      ["Pendiente", money_(s.outstanding), s.outstanding > 0 ? "warn" : "good"]
+    ];
+
+    $("summaryCards").innerHTML = metrics.map(function (metric) {
+      return '<div class="metric ' + metric[2] + '">' +
+        '<div class="metric-label">' + escape_(metric[0]) + '</div>' +
+        '<div class="metric-value">' + escape_(String(metric[1])) + '</div>' +
+      '</div>';
+    }).join("");
+
+    $("summaryPending").innerHTML = state.pendingCharges.length
+      ? table_(
+          ["Unidad", "Inquilino", "Cargo", "Pendiente", ""],
+          state.pendingCharges.map(function (charge) {
+            return [
+              dual_(charge.propertyName, charge.unitName),
+              escape_(charge.tenantName || "Sin inquilino"),
+              money_(charge.currentAmount),
+              '<span class="strong">' + money_(charge.outstandingAmount) + '</span>',
+              '<button class="button small js-pay" data-charge="' +
+                escapeAttr_(charge.chargeId) + '">Cobrar</button>'
+            ];
+          })
+        )
+      : empty_("No hay saldos pendientes en " + state.summary.period + ".");
+
+    document.querySelectorAll(".js-pay").forEach(function (button) {
+      button.addEventListener("click", function () {
+        activateTab_("payments");
+        $("paymentCharge").value = button.dataset.charge;
+        updatePaymentChargeInfo_();
+        $("paymentAmount").focus();
+      });
+    });
+
+    $("summaryLeases").innerHTML = state.activeLeases.length
+      ? table_(
+          ["Unidad", "Inquilino", "Renta", "Fin"],
+          state.activeLeases.slice(0, 10).map(function (lease) {
+            return [
+              dual_(lease.propertyName, lease.unitName),
+              escape_(lease.tenantName || "—"),
+              money_(lease.baseRent),
+              escape_(lease.endDate)
+            ];
+          })
+        )
+      : empty_("Aún no hay contratos activos.");
+  }
+
+  function renderCharges_() {
+    $("chargesTable").innerHTML = state.charges.length
+      ? table_(
+          ["Unidad", "Inquilino", "Cargo", "Pagado", "Saldo", "Estado"],
+          state.charges.map(function (charge) {
+            return [
+              dual_(charge.propertyName, charge.unitName),
+              escape_(charge.tenantName || "—"),
+              money_(charge.currentAmount),
+              money_(charge.allocatedAmount),
+              '<span class="strong">' + money_(charge.outstandingAmount) + '</span>',
+              badge_(charge.status)
+            ];
+          })
+        )
+      : empty_("No hay cargos para este periodo.");
+  }
+
+  function renderLeases_() {
+    $("leasesTable").innerHTML = state.activeLeases.length
+      ? table_(
+          ["Unidad", "Inquilino", "Renta", "Inicio", "Fin", "Estado"],
+          state.activeLeases.map(function (lease) {
+            return [
+              dual_(lease.propertyName, lease.unitName),
+              escape_(lease.tenantName || "—"),
+              money_(lease.baseRent),
+              escape_(lease.startDate),
+              escape_(lease.endDate),
+              badge_(lease.status)
+            ];
+          })
+        )
+      : empty_("No hay contratos activos.");
+  }
+
+  function renderExpenses_() {
+    $("expensesTable").innerHTML = state.recentExpenses.length
+      ? table_(
+          ["Fecha", "Propiedad / unidad", "Categoría", "Descripción", "Monto"],
+          state.recentExpenses.map(function (expense) {
+            return [
+              escape_(expense.date),
+              dual_(expense.propertyName, expense.unitName),
+              escape_(expense.category),
+              escape_(expense.description),
+              money_(expense.amount)
+            ];
+          })
+        )
+      : empty_("No hay gastos registrados.");
+  }
+
+  function renderWorkOrders_() {
+    $("workOrdersTable").innerHTML = state.openWorkOrders.length
+      ? table_(
+          ["Propiedad / unidad", "Categoría", "Descripción", "Prioridad", "Estado"],
+          state.openWorkOrders.map(function (workOrder) {
+            return [
+              dual_(workOrder.propertyName, workOrder.unitName),
+              escape_(workOrder.category),
+              escape_(workOrder.description),
+              badge_(workOrder.priority),
+              badge_(workOrder.status)
+            ];
+          })
+        )
+      : empty_("No hay mantenimiento abierto.");
+  }
+
+  function renderSelects_() {
+    fillSelect_(
+      "paymentCharge",
+      state.pendingCharges.map(function (charge) {
+        return {
+          value: charge.chargeId,
+          label: (charge.propertyName || "") + " · " + (charge.unitName || "") +
+            " · " + charge.period + " · " + money_(charge.outstandingAmount)
+        };
+      }),
+      "Selecciona un cargo"
+    );
+
+    fillSelect_(
+      "leaseProperty",
+      state.properties.map(function (property) {
+        return { value: property.propertyId, label: property.name };
+      }),
+      "Selecciona propiedad"
+    );
+
+    fillSelect_(
+      "expenseProperty",
+      state.properties.map(function (property) {
+        return { value: property.propertyId, label: property.name };
+      }),
+      "Selecciona propiedad"
+    );
+
+    fillSelect_(
+      "workProperty",
+      state.properties.map(function (property) {
+        return { value: property.propertyId, label: property.name };
+      }),
+      "Selecciona propiedad"
+    );
+
+    fillSelect_(
+      "unitProperty",
+      state.properties.map(function (property) {
+        return { value: property.propertyId, label: property.name };
+      }),
+      "Selecciona propiedad"
+    );
+
+    var people = state.parties.filter(function (party) {
+      return party.partyType === "PERSON";
+    });
+
+    fillSelect_(
+      "leaseTenant",
+      people.map(function (party) {
+        return { value: party.partyId, label: party.name };
+      }),
+      "Selecciona inquilino"
+    );
+
+    fillSelect_(
+      "workReportedBy",
+      state.parties.map(function (party) {
+        return { value: party.partyId, label: party.name };
+      }),
+      "Sin especificar"
+    );
+
+    fillSelect_(
+      "paymentMethod",
+      state.enums.paymentMethods.map(enumOption_),
+      null
+    );
+    fillSelect_(
+      "expenseMethod",
+      [{ value: "", label: "Sin especificar" }].concat(
+        state.enums.paymentMethods.map(enumOption_)
+      ),
+      null
+    );
+    fillSelect_(
+      "expenseCategory",
+      state.enums.expenseCategories.map(enumOption_),
+      null
+    );
+    fillSelect_(
+      "workPriority",
+      state.enums.workOrderPriorities.map(enumOption_),
+      null
+    );
+    fillSelect_(
+      "propertyType",
+      state.enums.propertyTypes.map(enumOption_),
+      null
+    );
+    fillSelect_(
+      "unitType",
+      state.enums.unitTypes.map(enumOption_),
+      null
+    );
+
+    renderUnitSelect_("leaseUnit", $("leaseProperty").value, true);
+    renderUnitSelect_("expenseUnit", $("expenseProperty").value, false);
+    renderUnitSelect_("workUnit", $("workProperty").value, false);
+  }
+
+  function renderUnitSelect_(selectId, propertyId, onlyVacant) {
+    if (!state) return;
+
+    var options = state.units.filter(function (unit) {
+      if (propertyId && unit.propertyId !== propertyId) return false;
+      if (onlyVacant && unit.status !== "VACANT") return false;
+      return true;
+    }).map(function (unit) {
+      return {
+        value: unit.unitId,
+        label: unit.name + " · " + unit.status
+      };
+    });
+
+    fillSelect_(
+      selectId,
+      options,
+      onlyVacant ? "Selecciona unidad disponible" : "Sin unidad específica"
+    );
+  }
+
+  function updatePaymentChargeInfo_() {
+    if (!state) return;
+    var charge = findCharge_($("paymentCharge").value);
+    var box = $("paymentChargeInfo");
+
+    if (!charge) {
+      box.innerHTML = "";
+      box.classList.remove("has-value");
+      $("paymentAmount").value = "";
+      return;
+    }
+
+    box.classList.add("has-value");
+    box.innerHTML =
+      '<div class="strong">' + escape_(charge.propertyName + " · " + charge.unitName) + '</div>' +
+      '<div>' + escape_(charge.tenantName || "Sin inquilino") + '</div>' +
+      '<div class="subtext">Cargo ' + money_(charge.currentAmount) +
+      ' · Pagado ' + money_(charge.allocatedAmount) +
+      ' · Pendiente ' + money_(charge.outstandingAmount) + '</div>';
+
+    $("paymentAmount").value = charge.outstandingAmount.toFixed(2);
+  }
+
+  function findCharge_(chargeId) {
+    return (state && state.pendingCharges || []).find(function (charge) {
+      return charge.chargeId === chargeId;
+    }) || null;
+  }
+
+  function fillSelect_(id, options, placeholder) {
+    var select = $(id);
+    if (!select) return;
+    var previous = select.value;
+    var html = "";
+
+    if (placeholder !== null) {
+      html += '<option value="">' + escape_(placeholder || "") + '</option>';
+    }
+
+    html += options.map(function (option) {
+      return '<option value="' + escapeAttr_(option.value) + '">' +
+        escape_(option.label) + '</option>';
+    }).join("");
+
+    select.innerHTML = html;
+
+    if (previous && options.some(function (option) { return option.value === previous; })) {
+      select.value = previous;
+    }
+  }
+
+  function enumOption_(value) {
+    return { value: value, label: value.replaceAll("_", " ") };
+  }
+
+  function table_(headers, rows) {
+    return '<div class="table-wrap"><table><thead><tr>' +
+      headers.map(function (header) {
+        return '<th>' + escape_(header) + '</th>';
+      }).join("") +
+      '</tr></thead><tbody>' +
+      rows.map(function (row) {
+        return '<tr>' + row.map(function (cell) {
+          return '<td>' + cell + '</td>';
+        }).join("") + '</tr>';
+      }).join("") +
+      '</tbody></table></div>';
+  }
+
+  function dual_(top, bottom) {
+    return '<div class="strong">' + escape_(top || "—") + '</div>' +
+      '<div class="subtext">' + escape_(bottom || "") + '</div>';
+  }
+
+  function badge_(value) {
+    var safe = String(value || "");
+    return '<span class="badge ' + escapeAttr_(safe) + '">' + escape_(safe) + '</span>';
+  }
+
+  function empty_(text) {
+    return '<div class="empty">' + escape_(text) + '</div>';
+  }
+
+  function money_(value) {
+    var currency = state && state.app ? state.app.currency : "MXN";
+    try {
+      return new Intl.NumberFormat("es-MX", {
+        style: "currency",
+        currency: currency,
+        maximumFractionDigits: 2
+      }).format(Number(value || 0));
+    } catch (error) {
+      return currency + " " + Number(value || 0).toFixed(2);
+    }
+  }
+
+  function runAction_(loadingText, method, payload) {
+    setLoading_(true, loadingText);
+    return server_(method, payload)
+      .then(function (result) {
+        setLoading_(false);
+        return result;
+      })
+      .catch(function (error) {
+        setLoading_(false);
+        showToast_(error.message || String(error), true);
+        throw error;
+      });
+  }
+
+  function server_(method, payload) {
+    return new Promise(function (resolve, reject) {
+      var runner = google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(function (error) {
+          reject(new Error(error && error.message ? error.message : String(error)));
+        });
+
+      if (method === "state") return runner.getOperatorUiState(payload);
+      if (method === "generateCharges") return runner.generateChargesFromOperatorUi(payload);
+      if (method === "payment") return runner.registerPaymentFromOperatorUi(payload);
+      if (method === "lease") return runner.createLeaseFromOperatorUi(payload);
+      if (method === "expense") return runner.createExpenseFromOperatorUi(payload);
+      if (method === "workOrder") return runner.createWorkOrderFromOperatorUi(payload);
+      if (method === "party") return runner.createPartyFromOperatorUi(payload);
+      if (method === "property") return runner.createPropertyFromOperatorUi(payload);
+      if (method === "unit") return runner.createUnitFromOperatorUi(payload);
+
+      reject(new Error("Unknown client method: " + method));
+    });
+  }
+
+  function setLoading_(visible, text) {
+    $("loadingText").textContent = text || "Procesando…";
+    $("loadingOverlay").classList.toggle("hidden", !visible);
+  }
+
+  function showToast_(message, isError) {
+    var toast = $("toast");
+    toast.textContent = message;
+    toast.classList.toggle("error", !!isError);
+    toast.classList.remove("hidden");
+    window.clearTimeout(showToast_.timer);
+    showToast_.timer = window.setTimeout(function () {
+      toast.classList.add("hidden");
+    }, 4200);
+  }
+
+  function escape_(value) {
+    return String(value == null ? "" : value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function escapeAttr_(value) {
+    return escape_(value);
+  }
+})();
+</script>
