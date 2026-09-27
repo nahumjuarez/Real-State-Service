@@ -41,7 +41,18 @@ function createLease(input) {
       throw new Error("Cannot activate a lease for an OFF_MARKET unit.");
     }
 
-    assertNoBlockingLeaseOverlap_(unit.unit_id, startDate, endDate, "");
+    additionalParties.forEach(function (entry) {
+      var party = assertRecordExists_("Parties", entry.partyId, "Lease party");
+      requireEnumValue_(entry.role, REOS_ENUMS.leaseRole, "Lease role");
+
+      if (String(party.status) !== "ACTIVE") {
+        throw new Error("Lease party must be ACTIVE: " + entry.partyId);
+      }
+    });
+
+    if (status === "ACTIVE" || status === "EXPIRING") {
+      assertNoBlockingLeaseOverlap_(unit.unit_id, startDate, endDate, "");
+    }
 
     var now = new Date();
     var lease = {
