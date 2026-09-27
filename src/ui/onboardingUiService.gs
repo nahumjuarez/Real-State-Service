@@ -39,6 +39,10 @@ function createOnboardingPartyFromUi(payload) {
   return serializeUiValue_(createParty(payload || {}));
 }
 
+function updateOnboardingPartyFromUi(payload) {
+  return serializeUiValue_(updateParty(payload || {}));
+}
+
 function createOnboardingPropertyFromUi(payload) {
   var data = payload || {};
   return serializeUiValue_(
@@ -75,6 +79,30 @@ function createOnboardingPropertyFromUi(payload) {
           : Number(data.ownershipPercent) / 100,
       ownershipStartDate:
         data.ownershipStartDate || data.acquisitionDate || new Date()
+    })
+  );
+}
+
+function updateOnboardingPropertyFromUi(payload) {
+  var data = payload || {};
+  return serializeUiValue_(
+    updateProperty({
+      propertyId: data.propertyId,
+      propertyName: data.propertyName,
+      propertyType: data.propertyType,
+      street: data.street || "",
+      neighborhood: data.neighborhood || "",
+      municipality: data.municipality,
+      state: data.state,
+      postalCode: data.postalCode || "",
+      country: data.country || "MX",
+      acquisitionDate: data.acquisitionDate || "",
+      acquisitionPrice:
+        data.acquisitionPrice === "" || data.acquisitionPrice === undefined
+          ? ""
+          : Number(data.acquisitionPrice),
+      predialAccount: data.predialAccount || "",
+      status: data.status || "ACTIVE"
     })
   );
 }
@@ -125,6 +153,39 @@ function createOnboardingUnitFromUi(payload) {
           ? ""
           : Number(data.rentableAreaM2),
       status: data.status || "VACANT"
+    })
+  );
+}
+
+function updateOnboardingUnitFromUi(payload) {
+  var data = payload || {};
+  return serializeUiValue_(
+    updateUnit({
+      unitId: data.unitId,
+      unitName: data.unitName,
+      unitType: data.unitType,
+      floor: data.floor || "",
+      bedrooms:
+        data.bedrooms === "" || data.bedrooms === undefined
+          ? ""
+          : Number(data.bedrooms),
+      bathrooms:
+        data.bathrooms === "" || data.bathrooms === undefined
+          ? ""
+          : Number(data.bathrooms),
+      parkingSpaces:
+        data.parkingSpaces === "" || data.parkingSpaces === undefined
+          ? ""
+          : Number(data.parkingSpaces),
+      areaM2:
+        data.areaM2 === "" || data.areaM2 === undefined
+          ? ""
+          : Number(data.areaM2),
+      rentableAreaM2:
+        data.rentableAreaM2 === "" || data.rentableAreaM2 === undefined
+          ? ""
+          : Number(data.rentableAreaM2),
+      status: data.status
     })
   );
 }
@@ -186,6 +247,10 @@ function recordOnboardingDepositFromUi(payload) {
 
 function createOnboardingAccessProfileFromUi(payload) {
   return serializeUiValue_(createAccessProfile(payload || {}));
+}
+
+function updateOnboardingAccessProfileFromUi(payload) {
+  return serializeUiValue_(updateAccessProfile(payload || {}));
 }
 
 function archiveOnboardingAccessProfileFromUi(payload) {
