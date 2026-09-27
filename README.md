@@ -48,7 +48,19 @@ Después:
 cp .clasp.example.json .clasp.json
 ```
 
-Edita `.clasp.json` con el Script ID del proyecto DEV y ejecuta:
+Edita `.clasp.json` con el Script ID del proyecto DEV y el ID del Google Sheet contenedor. El ID del Sheet es la parte entre `/d/` y `/edit` de su URL.
+
+Ejemplo:
+
+```json
+{
+  "scriptId": "YOUR_SCRIPT_ID",
+  "parentId": "YOUR_SPREADSHEET_ID",
+  "rootDir": "src"
+}
+```
+
+Después ejecuta:
 
 ```bash
 npm run validate:schema
