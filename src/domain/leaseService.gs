@@ -66,7 +66,9 @@ function createLease(input) {
           ? 0
           : requirePositiveNumber_(data.depositRequired, "Deposit required", true),
       payment_due_day: requireIntegerBetween_(
-        data.paymentDueDay || 1,
+        data.paymentDueDay === undefined || data.paymentDueDay === ""
+          ? 1
+          : data.paymentDueDay,
         1,
         31,
         "Payment due day"
