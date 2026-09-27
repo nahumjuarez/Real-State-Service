@@ -26,6 +26,7 @@
         <button class="tab" data-tab="payments" type="button">Cobros</button>
         <button class="tab" data-tab="leases" type="button">Contratos</button>
         <button class="tab" data-tab="expenses" type="button">Gastos</button>
+        <button class="tab" data-tab="capex" type="button">CapEx</button>
         <button class="tab" data-tab="maintenance" type="button">Mantenimiento</button>
         <button class="tab" data-tab="catalog" type="button">Datos base</button>
       </nav>
@@ -114,6 +115,13 @@
                 </div>
               </div>
               <div id="chargesTable"></div>
+              <div class="card-header section-divider">
+                <div>
+                  <h2>Pagos recientes</h2>
+                  <p>Los pagos pueden revertirse sin borrar su trazabilidad.</p>
+                </div>
+              </div>
+              <div id="paymentsTable"></div>
             </section>
           </div>
         </section>
@@ -242,6 +250,73 @@
                 </div>
               </div>
               <div id="expensesTable"></div>
+            </section>
+          </div>
+        </section>
+
+
+        <section id="tab-capex" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header">
+                <div>
+                  <h2>Registrar CapEx</h2>
+                  <p>Inversión de capital separada de gastos operativos.</p>
+                </div>
+              </div>
+              <form id="capexForm" class="form-stack">
+                <label>
+                  Propiedad
+                  <select id="capexProperty" required></select>
+                </label>
+                <label>
+                  Unidad (opcional)
+                  <select id="capexUnit"></select>
+                </label>
+                <label>
+                  Proyecto
+                  <input id="capexProject" type="text" required maxlength="200">
+                </label>
+                <div class="form-row">
+                  <label>
+                    Presupuesto
+                    <input id="capexBudget" type="number" min="0" step="0.01">
+                  </label>
+                  <label>
+                    Costo real
+                    <input id="capexActual" type="number" min="0" step="0.01">
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>
+                    Inicio
+                    <input id="capexStart" type="date">
+                  </label>
+                  <label>
+                    Fin
+                    <input id="capexEnd" type="date">
+                  </label>
+                </div>
+                <label>
+                  Vida útil esperada (años)
+                  <input id="capexLife" type="number" min="0.1" step="0.1">
+                </label>
+                <label>
+                  Notas
+                  <textarea id="capexNotes" rows="3" maxlength="500"></textarea>
+                </label>
+                <button class="button" type="submit">Registrar CapEx</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>CapEx reciente</h2>
+                  <p>Historial de inversiones de capital.</p>
+                </div>
+              </div>
+              <div id="capexTable"></div>
             </section>
           </div>
         </section>
