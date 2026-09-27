@@ -41,6 +41,11 @@ function createLease(input) {
       throw new Error("Cannot activate a lease for an OFF_MARKET unit.");
     }
 
+    var additionalParties = data.additionalParties || [];
+    if (!Array.isArray(additionalParties)) {
+      throw new Error("additionalParties must be an array.");
+    }
+
     additionalParties.forEach(function (entry) {
       var party = assertRecordExists_("Parties", entry.partyId, "Lease party");
       requireEnumValue_(entry.role, REOS_ENUMS.leaseRole, "Lease role");
@@ -95,11 +100,6 @@ function createLease(input) {
         role: "TENANT"
       });
     });
-
-    var additionalParties = data.additionalParties || [];
-    if (!Array.isArray(additionalParties)) {
-      throw new Error("additionalParties must be an array.");
-    }
 
     additionalParties.forEach(function (entry) {
       var party = assertRecordExists_("Parties", entry.partyId, "Lease party");
