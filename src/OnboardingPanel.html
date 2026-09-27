@@ -266,9 +266,17 @@
                 <label>Unidad
                   <select id="leaseUnit" required></select>
                 </label>
-                <label>Inquilino
+                <label>Inquilino principal
                   <select id="leaseTenant" required></select>
                 </label>
+                <div class="form-row">
+                  <label>Co-inquilino (opcional)
+                    <select id="leaseCoTenant"></select>
+                  </label>
+                  <label>Fiador / garante (opcional)
+                    <select id="leaseGuarantor"></select>
+                  </label>
+                </div>
                 <div class="form-row">
                   <label>Inicio
                     <input id="leaseStart" type="date" required>
