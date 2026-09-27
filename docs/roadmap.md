@@ -123,16 +123,43 @@ Orden:
 - [x] controles correspondientes en Operator UI;
 - [x] fallback nativo de cobranza;
 - [x] guía de rollout PROD;
-- [ ] smoke test Full Operations en Google Sheet DEV;
+- [x] smoke test Full Operations en Google Sheet DEV;
 - [ ] prueba manual de acciones críticas;
-- [ ] creación de instancia PROD;
+- [x] creación de instancia PROD;
 - [ ] carga inicial del portafolio real.
 
-**Estado de implementación:** backend/UI completos en `feat/full-operations-v1`; pendiente validación integrada y rollout.
+**Estado de implementación:** Full Operations validado en DEV y entorno PROD creado/promovido.
 
 **Salida:** Real Estate OS v0.3 listo para operación real.
 
 ---
+
+## Fase 3D — Portfolio Onboarding UI
+
+**Objetivo:** cargar el portafolio real de forma guiada, segura y verificable antes de activar automatizaciones.
+
+- [x] panel dedicado de onboarding;
+- [x] alta de Parties;
+- [x] alta de Properties con ownership inicial;
+- [x] ownership adicional y cierre histórico;
+- [x] validación de ownership concurrente <=100%;
+- [x] alta detallada de Units;
+- [x] carga de contratos vigentes;
+- [x] depósito inicial integrado al alta del contrato;
+- [x] registro posterior de depósitos faltantes;
+- [x] creación de renovaciones DRAFT;
+- [x] activación de renovaciones;
+- [x] AccessProfiles con referencias externas a bóveda;
+- [x] rechazo explícito de passwords/PIN/tokens inline;
+- [x] detector de gaps de onboarding;
+- [x] automatización mensual bloqueada en PROD hasta readiness;
+- [x] smoke test sintético de onboarding;
+- [ ] validación integrada en Google Sheet DEV;
+- [ ] despliegue de schema 0.2.0 en PROD;
+- [ ] carga inicial del portafolio real;
+- [ ] aceptación del snapshot de onboarding sin bloqueos.
+
+**Salida:** Real Estate OS v0.3.1 preparado para carga real del portafolio.
 
 ## Fase 3B — Interfaz familiar
 
@@ -294,13 +321,17 @@ El dominio y reglas no deberían cambiar por esta migración.
 # Prioridad inmediata
 
 ```text
-Full Operations DEV
+Onboarding UI DEV
  ↓
-smoke test + aceptación manual
+smoke test + aceptación visual
  ↓
-Google Sheet PROD
+sync schema 0.2.0 en PROD
  ↓
-carga inicial del portafolio
+carga inicial del portafolio real
+ ↓
+validación de readiness
+ ↓
+activar automatización mensual
  ↓
 operación diaria
  ↓
