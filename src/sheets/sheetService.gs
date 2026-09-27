@@ -126,3 +126,33 @@ function normalizeCellValue_(value) {
 function getRecordCount_(sheet) {
   return Math.max(sheet.getLastRow() - 1, 0);
 }
+
+
+function readAllRecords_(tableName) {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = spreadsheet.getSheetByName(tableName);
+  var tableDef = getTableDef_(tableName);
+
+  if (!sheet) {
+    throw new Error("Missing sheet " + tableName + ".");
+  }
+
+  var rowCount = getRecordCount_(sheet);
+  if (rowCount === 0) return [];
+
+  var headers = tableDef.columns.map(function (column) {
+    return column.key;
+  });
+
+  var values = sheet
+    .getRange(2, 1, rowCount, headers.length)
+    .getValues();
+
+  return values.map(function (row) {
+    var record = {};
+    headers.forEach(function (header, index) {
+      record[header] = row[index];
+    });
+    return record;
+  });
+}
