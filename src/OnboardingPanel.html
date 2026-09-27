@@ -95,7 +95,10 @@
                     <input id="partyPhone" type="text" maxlength="60">
                   </label>
                 </div>
-                <button class="button" type="submit">Crear persona / organización</button>
+                <div class="form-actions">
+                  <button id="partySubmit" class="button" type="submit">Crear persona / organización</button>
+                  <button id="partyCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
               </form>
             </section>
             <section class="card">
@@ -148,7 +151,7 @@
                 <label>Cuenta predial
                   <input id="propertyPredial" type="text" maxlength="100">
                 </label>
-                <div class="subsection">
+                <div id="propertyOwnershipSection" class="subsection">
                   <h3>Ownership inicial</h3>
                   <label>Propietario
                     <select id="propertyOwner"></select>
@@ -162,7 +165,10 @@
                     </label>
                   </div>
                 </div>
-                <button class="button" type="submit">Crear propiedad</button>
+                <div class="form-actions">
+                  <button id="propertySubmit" class="button" type="submit">Crear propiedad</button>
+                  <button id="propertyCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
               </form>
             </section>
             <section class="card">
@@ -248,7 +254,10 @@
                     <option value="OFF_MARKET">Fuera de mercado</option>
                   </select>
                 </label>
-                <button class="button" type="submit">Crear unidad</button>
+                <div class="form-actions">
+                  <button id="unitSubmit" class="button" type="submit">Crear unidad</button>
+                  <button id="unitCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
               </form>
             </section>
             <section class="card">
@@ -406,7 +415,10 @@
                 <label>Instrucciones no secretas
                   <textarea id="accessInstructions" rows="3" maxlength="500" placeholder="Ej. El router está en el mueble de entrada."></textarea>
                 </label>
-                <button class="button" type="submit">Registrar referencia de acceso</button>
+                <div class="form-actions">
+                  <button id="accessSubmit" class="button" type="submit">Registrar referencia de acceso</button>
+                  <button id="accessCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
               </form>
             </section>
             <section class="card">
