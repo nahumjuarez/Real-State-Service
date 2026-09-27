@@ -1,11 +1,23 @@
 function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu(REOS_APP.NAME)
+  var ui = SpreadsheetApp.getUi();
+
+  var operationsMenu = ui
+    .createMenu("Operación")
+    .addItem("Generar cargos del mes actual", "generateCurrentPeriodRentChargesFromMenu")
+    .addItem("Ver resumen del mes actual", "showCurrentPeriodSummaryFromMenu");
+
+  var developmentMenu = ui
+    .createMenu("Desarrollo")
+    .addItem("Cargar datos demo (DEV)", "seedDemoData")
+    .addItem("Smoke test Bootstrap", "runDemoSmokeTest")
+    .addItem("Smoke test Core Operations", "runCoreOperationsSmokeTest")
+    .addItem("Ejecutar diagnóstico", "runSystemDiagnostics");
+
+  ui.createMenu(REOS_APP.NAME)
     .addItem("Inicializar / sincronizar sistema", "setupRealEstateOS")
     .addSeparator()
-    .addItem("Cargar datos demo (DEV)", "seedDemoData")
-    .addItem("Ejecutar smoke test demo", "runDemoSmokeTest")
-    .addItem("Ejecutar diagnóstico", "runSystemDiagnostics")
+    .addSubMenu(operationsMenu)
+    .addSubMenu(developmentMenu)
     .addToUi();
 }
 
