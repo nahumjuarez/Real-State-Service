@@ -1,0 +1,5 @@
+{
+  "scriptId": "PASTE_YOUR_DEV_SCRIPT_ID_HERE",
+  "parentId": "PASTE_YOUR_DEV_SPREADSHEET_ID_HERE",
+  "rootDir": "src"
+}

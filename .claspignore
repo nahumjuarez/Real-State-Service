@@ -1,0 +1,3 @@
+# The clasp rootDir is src/, so only Apps Script project files are considered.
+**/*.test.gs
+**/*.spec.gs
