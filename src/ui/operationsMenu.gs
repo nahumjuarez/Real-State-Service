@@ -27,3 +27,27 @@ function generateCurrentPeriodRentChargesFromMenu() {
 
   return result;
 }
+
+function showCurrentPeriodSummaryFromMenu() {
+  var summary = getOperationalSummary(currentPeriod_());
+  var currency = String(getSetting_("currency") || "MXN");
+
+  SpreadsheetApp.getUi().alert(
+    REOS_APP.NAME + " — " + summary.period,
+    [
+      "Contratos activos: " + summary.activeLeases,
+      "Unidades ocupadas: " + summary.occupiedUnits,
+      "Cargos: " + summary.charges,
+      "Cargado: " + currency + " " + summary.totalCharged.toFixed(2),
+      "Cobrado/asignado: " + currency + " " + summary.totalAllocated.toFixed(2),
+      "Pendiente: " + currency + " " + summary.outstanding.toFixed(2),
+      "",
+      "OPEN: " + summary.statusCounts.OPEN,
+      "PARTIAL: " + summary.statusCounts.PARTIAL,
+      "PAID: " + summary.statusCounts.PAID
+    ].join("\n"),
+    SpreadsheetApp.getUi().ButtonSet.OK
+  );
+
+  return summary;
+}
