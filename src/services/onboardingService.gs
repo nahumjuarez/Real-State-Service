@@ -208,8 +208,19 @@ function getOnboardingSnapshot() {
         propertyId: String(property.property_id),
         propertyName: String(property.property_name || ""),
         propertyType: String(property.property_type || ""),
+        street: String(property.street || ""),
+        neighborhood: String(property.neighborhood || ""),
         municipality: String(property.municipality || ""),
         state: String(property.state || ""),
+        postalCode: String(property.postal_code || ""),
+        country: String(property.country || "MX"),
+        acquisitionDate: formatUiDate_(property.acquisition_date),
+        acquisitionPrice:
+          property.acquisition_price === ""
+            ? null
+            : Number(property.acquisition_price || 0),
+        predialAccount: String(property.predial_account || ""),
+        status: String(property.status || ""),
         ownershipPercent:
           Math.round(Number(activeOwnershipByProperty[property.property_id] || 0) * 10000) /
           100
@@ -229,7 +240,11 @@ function getOnboardingSnapshot() {
         bathrooms: unit.bathrooms === "" ? null : Number(unit.bathrooms),
         parkingSpaces:
           unit.parking_spaces === "" ? null : Number(unit.parking_spaces),
-        areaM2: unit.area_m2 === "" ? null : Number(unit.area_m2)
+        areaM2: unit.area_m2 === "" ? null : Number(unit.area_m2),
+        rentableAreaM2:
+          unit.rentable_area_m2 === ""
+            ? null
+            : Number(unit.rentable_area_m2)
       };
     }),
     parties: parties.map(function (party) {
