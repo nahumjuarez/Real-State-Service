@@ -1,0 +1,22 @@
+{
+  "name": "real-state-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Real Estate OS for property operations, asset management and investment analysis in Mexico.",
+  "license": "AGPL-3.0-only",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "validate:schema": "node scripts/validate-schema.mjs",
+    "clasp:login": "clasp login",
+    "clasp:status": "clasp status",
+    "clasp:push": "clasp push",
+    "clasp:pull": "clasp pull",
+    "clasp:open": "clasp open",
+    "clasp:logs": "clasp logs"
+  },
+  "devDependencies": {
+    "@google/clasp": "latest"
+  }
+}

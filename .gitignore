@@ -1,0 +1,32 @@
+# Node
+node_modules/
+
+# Google Apps Script / clasp
+.clasprc.json
+.clasp.json
+
+# Environment / secrets
+.env
+.env.*
+config.local.json
+secrets.json
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+
+# Private operational data
+data/private/
+data/raw/private/
+exports/private/
+backups/
+private-documents/
+
+# Fiscal documents
+*.xml
+
+# Editor / OS
+.vscode/settings.local.json
+.DS_Store
+Thumbs.db
