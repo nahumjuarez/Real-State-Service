@@ -5,6 +5,9 @@ function onOpen() {
     .createMenu("Operación")
     .addItem("Abrir panel operativo", "openOperatorPanel")
     .addSeparator()
+    .addItem("Registrar pago (modo nativo)", "registerPaymentNative")
+    .addItem("Resumen de cobranza (modo nativo)", "showNativeReceivablesSummary")
+    .addSeparator()
     .addItem("Generar cargos del mes actual", "generateCurrentPeriodRentChargesFromMenu")
     .addItem("Ver resumen del mes actual", "showCurrentPeriodSummaryFromMenu");
 
