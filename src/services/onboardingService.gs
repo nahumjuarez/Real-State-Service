@@ -393,6 +393,7 @@ function createLeaseOnboardingBundle(input) {
     paymentFrequency: data.paymentFrequency || "MONTHLY",
     rentAdjustmentRule: data.rentAdjustmentRule || "",
     tenantPartyIds: data.tenantPartyIds || [data.tenantPartyId],
+    additionalParties: data.additionalParties || [],
     status: data.status || "ACTIVE"
   });
 
