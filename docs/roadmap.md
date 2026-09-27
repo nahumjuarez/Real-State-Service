@@ -79,9 +79,9 @@ Orden:
 - [x] registrar gasto;
 - [x] registrar mantenimiento;
 - [x] auditar cambios;
-- [ ] prueba integrada en Google Sheet DEV.
+- [x] prueba integrada en Google Sheet DEV.
 
-**Estado de implementación:** backend completo en `feat/core-operations-v1`; pendiente ejecutar el smoke test integrado en Apps Script.
+**Estado de implementación:** Core Operations v1 validado en Google Sheet DEV mediante smoke test integrado.
 
 **Salida:** Real Estate OS v0.1 operativo.
 
