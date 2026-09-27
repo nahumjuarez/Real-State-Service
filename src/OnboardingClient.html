@@ -147,6 +147,8 @@
       submit_("lease", {
         unitId: $("leaseUnit").value,
         tenantPartyId: $("leaseTenant").value,
+        coTenantPartyId: $("leaseCoTenant").value,
+        guarantorPartyId: $("leaseGuarantor").value,
         startDate: $("leaseStart").value,
         endDate: $("leaseEnd").value,
         baseRent: $("leaseRent").value,
@@ -591,6 +593,20 @@
       "partyId",
       partyName_,
       "Selecciona inquilino"
+    );
+    entitySelect_(
+      $("leaseCoTenant"),
+      state.parties,
+      "partyId",
+      partyName_,
+      "Sin co-inquilino"
+    );
+    entitySelect_(
+      $("leaseGuarantor"),
+      state.parties,
+      "partyId",
+      partyName_,
+      "Sin fiador / garante"
     );
 
     entitySelect_(
