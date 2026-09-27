@@ -65,7 +65,17 @@ Debe verificar:
 - solo funciona con `environment=DEV`;
 - se niega a ejecutarse si ya existen datos operativos;
 - carga exclusivamente información sintética;
-- genera un caso con pago completo y otro con pago parcial.
+- genera dos casos pagados y un caso parcial.
+
+### Smoke test
+
+`runDemoSmokeTest()` verifica:
+
+- diagnóstico general correcto;
+- 3 propiedades, 3 unidades y 3 contratos demo;
+- 3 cargos, 3 pagos y 3 asignaciones;
+- saldo $0 en dos cargos;
+- saldo pendiente de $6,500 MXN en el cargo parcialmente pagado.
 
 ## Lo que deliberadamente NO incluye
 
