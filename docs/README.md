@@ -10,14 +10,14 @@ La documentación es la fuente de verdad para las decisiones de arquitectura. El
 2. [bootstrap-v1.md](./bootstrap-v1.md) — cómo desplegar y probar la primera base técnica.
 3. [core-operations-v1.md](./core-operations-v1.md) — servicios operativos, ledger y prueba integral.
 4. [operator-ui-v1.md](./operator-ui-v1.md) — panel operativo y formularios sobre HtmlService.
-12. [data-model.md](./data-model.md) — entidades, relaciones y estructura de datos.
-5. [business-rules.md](./business-rules.md) — reglas que gobiernan contratos, cargos, pagos, gastos y estados.
-6. [security.md](./security.md) — privacidad, secretos, roles y separación público/privado.
-7. [fiscal-flow.md](./fiscal-flow.md) — diseño de la integración CFDI/PAC para México.
-8. [market-data.md](./market-data.md) — fuentes, pipeline e inteligencia de mercado.
-9. [roadmap.md](./roadmap.md) — orden de construcción y definición de hitos.
-10. [references.md](./references.md) — repositorios estudiados y patrones reutilizados.
-11. [adr/README.md](./adr/README.md) — decisiones de arquitectura que deben quedar registradas.
+5. [data-model.md](./data-model.md) — entidades, relaciones y estructura de datos.
+6. [business-rules.md](./business-rules.md) — reglas que gobiernan contratos, cargos, pagos, gastos y estados.
+7. [security.md](./security.md) — privacidad, secretos, roles y separación público/privado.
+8. [fiscal-flow.md](./fiscal-flow.md) — diseño de la integración CFDI/PAC para México.
+9. [market-data.md](./market-data.md) — fuentes, pipeline e inteligencia de mercado.
+10. [roadmap.md](./roadmap.md) — orden de construcción y definición de hitos.
+11. [references.md](./references.md) — repositorios estudiados y patrones reutilizados.
+12. [adr/README.md](./adr/README.md) — decisiones de arquitectura que deben quedar registradas.
 
 ## Principio rector
 
