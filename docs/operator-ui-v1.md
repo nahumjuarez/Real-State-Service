@@ -44,7 +44,9 @@ Los saldos se calculan desde `PaymentAllocations`, no desde una bandera manual.
 
 Permite:
 
-- seleccionar un cargo pendiente;
+- seleccionar primero el departamento/unidad;
+- ver sus cargos pendientes incluso si pertenecen a otro periodo;
+- seleccionar el cargo correspondiente;
 - ver cargo, pagado y saldo;
 - registrar monto;
 - fecha;
@@ -129,7 +131,8 @@ La lógica de negocio permanece fuera del navegador.
 - los IDs internos sí se usan como claves técnicas;
 - el cliente escapa texto antes de insertarlo en HTML;
 - las fechas se convierten a strings antes de viajar por `google.script.run`;
-- errores del servidor se muestran al operador sin saltarse validaciones del dominio.
+- errores del servidor se muestran al operador sin saltarse validaciones del dominio;
+- el error conocido `PERMISSION_DENIED` de sesiones Google múltiples se traduce a una instrucción comprensible para el operador.
 
 ## Pruebas
 
