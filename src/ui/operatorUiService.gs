@@ -12,6 +12,15 @@ function includeOperatorFile_(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
+function pingOperatorUiBridge() {
+  return {
+    ok: true,
+    message: "pong",
+    timestamp: new Date().toISOString(),
+    actor: currentActor_()
+  };
+}
+
 function getOperatorUiState(period) {
   var normalizedPeriod = normalizePeriod_(period || currentPeriod_());
   var properties = readAllRecords_("Properties");
