@@ -13,8 +13,9 @@
     "clasp:status": "clasp status",
     "clasp:push": "clasp push",
     "clasp:pull": "clasp pull",
-    "clasp:open": "clasp open",
-    "clasp:logs": "clasp logs"
+    "clasp:open": "clasp open-script",
+    "clasp:logs": "clasp tail-logs",
+    "clasp:container": "clasp open-container"
   },
   "devDependencies": {
     "@google/clasp": "latest"
