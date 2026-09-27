@@ -87,11 +87,32 @@ Orden:
 
 ---
 
-## Fase 3 — Interfaz familiar
+## Fase 3A — Operator UI
 
-**Objetivo:** que una persona no técnica no tenga que tocar tablas.
+**Objetivo:** operar el núcleo sin editar tablas manualmente.
 
-Evaluar AppSheet.
+- [x] panel HtmlService;
+- [x] resumen mensual;
+- [x] pendientes de cobro;
+- [x] registrar pago;
+- [x] crear contrato;
+- [x] registrar gasto;
+- [x] registrar mantenimiento;
+- [x] altas base de Party, Property y Unit;
+- [x] smoke test de plantilla/payload;
+- [ ] prueba visual integrada en Google Sheet DEV.
+
+**Estado de implementación:** código completo en `feat/operator-ui-v1`; pendiente prueba visual integrada.
+
+**Salida:** interfaz operativa v0.2-alpha.
+
+---
+
+## Fase 3B — Interfaz familiar
+
+**Objetivo:** que una persona no técnica pueda operar con todavía menos complejidad.
+
+Evaluar AppSheet después de validar Operator UI.
 
 Pantallas mínimas:
 
