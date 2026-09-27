@@ -33,6 +33,7 @@ function runOperatorUiSmokeTest() {
   check(!!state.summary, "UI state must include summary.");
   check(Array.isArray(state.charges), "UI state charges must be an array.");
   check(Array.isArray(state.pendingCharges), "UI state pendingCharges must be an array.");
+  check(Array.isArray(state.outstandingCharges), "UI state outstandingCharges must be an array.");
   check(Array.isArray(state.activeLeases), "UI state activeLeases must be an array.");
   check(Array.isArray(state.properties), "UI state properties must be an array.");
   check(Array.isArray(state.units), "UI state units must be an array.");
@@ -72,7 +73,8 @@ function runOperatorUiSmokeTest() {
       parties: state.parties.length,
       activeLeases: state.activeLeases.length,
       charges: state.charges.length,
-      pendingCharges: state.pendingCharges.length
+      pendingCharges: state.pendingCharges.length,
+      outstandingCharges: state.outstandingCharges.length
     },
     failures: failures
   };
