@@ -355,71 +355,62 @@ function createPropertyOnboardingBundle(input) {
 
 function createLeaseOnboardingBundle(input) {
   var data = input || {};
-  var lock = LockService.getDocumentLock();
 
-  if (!lock.tryLock(30000)) {
-    throw new Error("Could not acquire onboarding lock. Try again.");
+  var amountReceived =
+    data.depositAmountReceived === undefined ||
+    data.depositAmountReceived === ""
+      ? 0
+      : requirePositiveNumber_(
+          data.depositAmountReceived,
+          "Deposit amount received",
+          true
+        );
+
+  var depositRequired =
+    data.depositRequired === undefined || data.depositRequired === ""
+      ? 0
+      : requirePositiveNumber_(
+          data.depositRequired,
+          "Deposit required",
+          true
+        );
+
+  var lease = createLease({
+    unitId: data.unitId,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    baseRent: data.baseRent,
+    depositRequired: depositRequired,
+    paymentDueDay: data.paymentDueDay,
+    paymentFrequency: data.paymentFrequency || "MONTHLY",
+    rentAdjustmentRule: data.rentAdjustmentRule || "",
+    tenantPartyIds: data.tenantPartyIds || [data.tenantPartyId],
+    status: data.status || "ACTIVE"
+  });
+
+  var deposit = null;
+  if (amountReceived > 0) {
+    deposit = recordSecurityDeposit({
+      leaseId: lease.lease_id,
+      amountReceived: amountReceived,
+      dateReceived: data.depositDateReceived || data.startDate || new Date()
+    });
   }
 
-  try {
-    var amountReceived =
-      data.depositAmountReceived === undefined ||
-      data.depositAmountReceived === ""
-        ? 0
-        : requirePositiveNumber_(
-            data.depositAmountReceived,
-            "Deposit amount received",
-            true
-          );
-
-    var depositRequired =
-      data.depositRequired === undefined || data.depositRequired === ""
-        ? 0
-        : requirePositiveNumber_(
-            data.depositRequired,
-            "Deposit required",
-            true
-          );
-
-    var lease = createLease({
-      unitId: data.unitId,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      baseRent: data.baseRent,
-      depositRequired: depositRequired,
-      paymentDueDay: data.paymentDueDay,
-      paymentFrequency: data.paymentFrequency || "MONTHLY",
-      rentAdjustmentRule: data.rentAdjustmentRule || "",
-      tenantPartyIds: data.tenantPartyIds || [data.tenantPartyId],
-      status: data.status || "ACTIVE"
-    });
-
-    var deposit = null;
-    if (amountReceived > 0) {
-      deposit = recordSecurityDeposit({
-        leaseId: lease.lease_id,
-        amountReceived: amountReceived,
-        dateReceived: data.depositDateReceived || data.startDate || new Date()
-      });
+  appendAuditEvent_({
+    action: "LEASE_ONBOARDING_BUNDLE_CREATED",
+    entityType: "LEASE",
+    entityId: lease.lease_id,
+    newValue: {
+      leaseId: lease.lease_id,
+      depositId: deposit ? deposit.deposit_id : ""
     }
+  });
 
-    appendAuditEvent_({
-      action: "LEASE_ONBOARDING_BUNDLE_CREATED",
-      entityType: "LEASE",
-      entityId: lease.lease_id,
-      newValue: {
-        leaseId: lease.lease_id,
-        depositId: deposit ? deposit.deposit_id : ""
-      }
-    });
-
-    return {
-      lease: lease,
-      deposit: deposit
-    };
-  } finally {
-    lock.releaseLock();
-  }
+  return {
+    lease: lease,
+    deposit: deposit
+  };
 }
 
 function validateOnboardingForAutomation() {
