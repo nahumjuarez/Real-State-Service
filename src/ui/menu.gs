@@ -3,6 +3,8 @@ function onOpen() {
 
   var operationsMenu = ui
     .createMenu("Operación")
+    .addItem("Abrir panel operativo", "openOperatorPanel")
+    .addSeparator()
     .addItem("Generar cargos del mes actual", "generateCurrentPeriodRentChargesFromMenu")
     .addItem("Ver resumen del mes actual", "showCurrentPeriodSummaryFromMenu");
 
@@ -14,8 +16,9 @@ function onOpen() {
     .addItem("Ejecutar diagnóstico", "runSystemDiagnostics");
 
   ui.createMenu(REOS_APP.NAME)
-    .addItem("Inicializar / sincronizar sistema", "setupRealEstateOS")
+    .addItem("Abrir panel operativo", "openOperatorPanel")
     .addSeparator()
+    .addItem("Inicializar / sincronizar sistema", "setupRealEstateOS")
     .addSubMenu(operationsMenu)
     .addSubMenu(developmentMenu)
     .addToUi();
