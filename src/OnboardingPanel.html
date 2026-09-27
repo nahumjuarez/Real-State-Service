@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?!= includeOnboardingFile_("OnboardingStyles"); ?>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">REAL ESTATE OS</div>
+          <h1>Onboarding del portafolio</h1>
+          <p id="instanceMeta" class="muted">Cargando instancia…</p>
+        </div>
+        <div class="toolbar">
+          <button id="refreshBtn" class="button secondary" type="button">Actualizar</button>
+          <button id="validateBtn" class="button" type="button">Validar operación</button>
+        </div>
+      </header>
+
+      <section class="overview">
+        <div class="progress-card">
+          <div class="progress-header">
+            <div>
+              <span class="eyebrow">AVANCE</span>
+              <div id="progressLabel" class="progress-label">0%</div>
+            </div>
+            <div id="progressText" class="muted"></div>
+          </div>
+          <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+          <div id="checkGrid" class="check-grid"></div>
+        </div>
+        <div id="countGrid" class="count-grid"></div>
+      </section>
+
+      <nav class="tabs" aria-label="Secciones de onboarding">
+        <button class="tab active" data-tab="review" type="button">Revisión</button>
+        <button class="tab" data-tab="people" type="button">Personas</button>
+        <button class="tab" data-tab="properties" type="button">Propiedades</button>
+        <button class="tab" data-tab="ownership" type="button">Ownership</button>
+        <button class="tab" data-tab="units" type="button">Unidades</button>
+        <button class="tab" data-tab="leases" type="button">Contratos</button>
+        <button class="tab" data-tab="deposits" type="button">Depósitos</button>
+        <button class="tab" data-tab="access" type="button">Accesos</button>
+      </nav>
+
+      <main>
+        <section id="tab-review" class="tab-panel active">
+          <div class="two-column wide-right">
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Qué falta para operar</h2>
+                  <p>Bloqueos y acciones detectados automáticamente.</p>
+                </div>
+              </div>
+              <div id="gapsList"></div>
+            </section>
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Portafolio actual</h2>
+                  <p>Resumen de propiedades, unidades y contratos cargados.</p>
+                </div>
+              </div>
+              <div id="portfolioTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-people" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header"><div><h2>Nueva persona / organización</h2><p>Propietarios, inquilinos, proveedores y demás actores comparten el mismo catálogo.</p></div></div>
+              <form id="partyForm" class="form-stack">
+                <label>Tipo
+                  <select id="partyType">
+                    <option value="PERSON">Persona</option>
+                    <option value="ORGANIZATION">Organización</option>
+                  </select>
+                </label>
+                <label>Nombre legal
+                  <input id="partyLegalName" type="text" required maxlength="180">
+                </label>
+                <label>Nombre preferido
+                  <input id="partyPreferredName" type="text" maxlength="120">
+                </label>
+                <div class="form-row">
+                  <label>Correo
+                    <input id="partyEmail" type="email" maxlength="180">
+                  </label>
+                  <label>Teléfono
+                    <input id="partyPhone" type="text" maxlength="60">
+                  </label>
+                </div>
+                <div class="form-actions">
+                  <button id="partySubmit" class="button" type="submit">Crear persona / organización</button>
+                  <button id="partyCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
+              </form>
+            </section>
+            <section class="card">
+              <div class="card-header"><div><h2>Parties registradas</h2><p>Después podrás asignarlas como propietario o inquilino.</p></div></div>
+              <div id="partiesTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-properties" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header"><div><h2>Nueva propiedad</h2><p>Puede crear simultáneamente su ownership inicial.</p></div></div>
+              <form id="propertyForm" class="form-stack">
+                <div class="form-row">
+                  <label>Nombre
+                    <input id="propertyName" type="text" required maxlength="160">
+                  </label>
+                  <label>Tipo
+                    <select id="propertyType" required></select>
+                  </label>
+                </div>
+                <label>Calle
+                  <input id="propertyStreet" type="text" maxlength="180">
+                </label>
+                <div class="form-row">
+                  <label>Colonia
+                    <input id="propertyNeighborhood" type="text" maxlength="120">
+                  </label>
+                  <label>Código postal
+                    <input id="propertyPostalCode" type="text" maxlength="20">
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>Municipio / alcaldía
+                    <input id="propertyMunicipality" type="text" required maxlength="120">
+                  </label>
+                  <label>Estado
+                    <input id="propertyState" type="text" required value="Puebla" maxlength="120">
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>Fecha de adquisición
+                    <input id="propertyAcquisitionDate" type="date">
+                  </label>
+                  <label>Precio de adquisición
+                    <input id="propertyAcquisitionPrice" type="number" min="0" step="0.01">
+                  </label>
+                </div>
+                <label>Cuenta predial
+                  <input id="propertyPredial" type="text" maxlength="100">
+                </label>
+                <div id="propertyOwnershipSection" class="subsection">
+                  <h3>Ownership inicial</h3>
+                  <label>Propietario
+                    <select id="propertyOwner"></select>
+                  </label>
+                  <div class="form-row">
+                    <label>Participación %
+                      <input id="propertyOwnershipPercent" type="number" min="0.01" max="100" step="0.01" value="100">
+                    </label>
+                    <label>Inicio ownership
+                      <input id="propertyOwnershipStart" type="date">
+                    </label>
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button id="propertySubmit" class="button" type="submit">Crear propiedad</button>
+                  <button id="propertyCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
+              </form>
+            </section>
+            <section class="card">
+              <div class="card-header"><div><h2>Propiedades</h2><p>La cobertura de ownership se calcula al día de hoy.</p></div></div>
+              <div id="propertiesTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-ownership" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header"><div><h2>Agregar ownership</h2><p>La suma concurrente nunca puede superar 100%.</p></div></div>
+              <form id="ownershipForm" class="form-stack">
+                <label>Propiedad
+                  <select id="ownershipProperty" required></select>
+                </label>
+                <label>Propietario
+                  <select id="ownershipParty" required></select>
+                </label>
+                <div class="form-row">
+                  <label>Participación %
+                    <input id="ownershipPercent" type="number" min="0.01" max="100" step="0.01" required>
+                  </label>
+                  <label>Inicio
+                    <input id="ownershipStart" type="date" required>
+                  </label>
+                </div>
+                <label>Fin (opcional)
+                  <input id="ownershipEnd" type="date">
+                </label>
+                <button class="button" type="submit">Registrar ownership</button>
+              </form>
+            </section>
+            <section class="card">
+              <div class="card-header"><div><h2>Ownership registrado</h2><p>Histórico de participación por propiedad.</p></div></div>
+              <div id="ownershipTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-units" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header"><div><h2>Nueva unidad</h2><p>Departamento, casa, local, estacionamiento o bodega.</p></div></div>
+              <form id="unitForm" class="form-stack">
+                <label>Propiedad
+                  <select id="unitProperty" required></select>
+                </label>
+                <div class="form-row">
+                  <label>Nombre
+                    <input id="unitName" type="text" required maxlength="120" placeholder="Ej. Depto 3B">
+                  </label>
+                  <label>Tipo
+                    <select id="unitType" required></select>
+                  </label>
+                </div>
+                <div class="form-row three">
+                  <label>Piso
+                    <input id="unitFloor" type="text" maxlength="30">
+                  </label>
+                  <label>Recámaras
+                    <input id="unitBedrooms" type="number" min="0" step="1">
+                  </label>
+                  <label>Baños
+                    <input id="unitBathrooms" type="number" min="0" step="0.5">
+                  </label>
+                </div>
+                <div class="form-row three">
+                  <label>Estacionamientos
+                    <input id="unitParking" type="number" min="0" step="1">
+                  </label>
+                  <label>Área m²
+                    <input id="unitArea" type="number" min="0.01" step="0.01">
+                  </label>
+                  <label>Área rentable m²
+                    <input id="unitRentableArea" type="number" min="0.01" step="0.01">
+                  </label>
+                </div>
+                <label>Estado inicial
+                  <select id="unitStatus">
+                    <option value="VACANT">Vacante</option>
+                    <option value="OFF_MARKET">Fuera de mercado</option>
+                  </select>
+                </label>
+                <div class="form-actions">
+                  <button id="unitSubmit" class="button" type="submit">Crear unidad</button>
+                  <button id="unitCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
+              </form>
+            </section>
+            <section class="card">
+              <div class="card-header"><div><h2>Unidades</h2><p>Inventario rentable del portafolio.</p></div></div>
+              <div id="unitsTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-leases" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header"><div><h2>Cargar contrato vigente</h2><p>Puede registrar el contrato y el depósito recibido en una sola operación.</p></div></div>
+              <form id="leaseForm" class="form-stack">
+                <label>Unidad
+                  <select id="leaseUnit" required></select>
+                </label>
+                <label>Inquilino principal
+                  <select id="leaseTenant" required></select>
+                </label>
+                <div class="form-row">
+                  <label>Co-inquilino (opcional)
+                    <select id="leaseCoTenant"></select>
+                  </label>
+                  <label>Fiador / garante (opcional)
+                    <select id="leaseGuarantor"></select>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>Inicio
+                    <input id="leaseStart" type="date" required>
+                  </label>
+                  <label>Fin
+                    <input id="leaseEnd" type="date" required>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>Renta mensual
+                    <input id="leaseRent" type="number" min="0.01" step="0.01" required>
+                  </label>
+                  <label>Día límite
+                    <input id="leaseDueDay" type="number" min="1" max="31" value="5" required>
+                  </label>
+                </div>
+                <label>Regla de ajuste
+                  <input id="leaseAdjustment" type="text" maxlength="200" placeholder="Ej. revisión anual según contrato">
+                </label>
+                <div class="subsection">
+                  <h3>Depósito</h3>
+                  <div class="form-row">
+                    <label>Depósito requerido
+                      <input id="leaseDepositRequired" type="number" min="0" step="0.01">
+                    </label>
+                    <label>Depósito ya recibido
+                      <input id="leaseDepositReceived" type="number" min="0" step="0.01">
+                    </label>
+                  </div>
+                  <label>Fecha de recepción
+                    <input id="leaseDepositDate" type="date">
+                  </label>
+                </div>
+                <button class="button" type="submit">Cargar contrato</button>
+              </form>
+            </section>
+            <section class="card">
+              <div class="card-header"><div><h2>Contratos</h2><p>Activos, drafts y contratos históricos.</p></div></div>
+              <div id="leasesTable"></div>
+              <div class="card-header section-divider"><div><h2>Preparar renovación</h2><p>La renovación se crea como DRAFT; se activa cuando corresponda.</p></div></div>
+              <form id="renewalForm" class="form-stack compact-form">
+                <label>Contrato base
+                  <select id="renewalLease" required></select>
+                </label>
+                <div class="form-row">
+                  <label>Nuevo inicio
+                    <input id="renewalStart" type="date" required>
+                  </label>
+                  <label>Nuevo fin
+                    <input id="renewalEnd" type="date" required>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>Nueva renta (opcional)
+                    <input id="renewalRent" type="number" min="0" step="0.01">
+                  </label>
+                  <label>Nuevo depósito (opcional)
+                    <input id="renewalDeposit" type="number" min="0" step="0.01">
+                  </label>
+                </div>
+                <button class="button secondary" type="submit">Crear renovación DRAFT</button>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-deposits" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header"><div><h2>Registrar depósito inicial</h2><p>Para contratos ya cargados que todavía no tienen depósito.</p></div></div>
+              <form id="depositForm" class="form-stack">
+                <label>Contrato
+                  <select id="depositLease" required></select>
+                </label>
+                <div class="form-row">
+                  <label>Monto recibido
+                    <input id="depositAmount" type="number" min="0.01" step="0.01" required>
+                  </label>
+                  <label>Fecha
+                    <input id="depositDate" type="date" required>
+                  </label>
+                </div>
+                <button class="button" type="submit">Registrar depósito</button>
+              </form>
+            </section>
+            <section class="card">
+              <div class="card-header"><div><h2>Cobertura de depósitos</h2><p>Los faltantes aparecen automáticamente en Revisión.</p></div></div>
+              <div id="depositCoverage"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-access" class="tab-panel">
+          <div class="security-banner">
+            <strong>No guardamos contraseñas, PINs, códigos de puerta ni tokens en Sheets.</strong>
+            <span>Guarda el secreto en Google Password Manager, 1Password o Bitwarden y registra aquí únicamente la referencia del elemento.</span>
+          </div>
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header"><div><h2>Nuevo acceso</h2><p>Referencia segura para Wi-Fi, cerraduras, portales, alarmas y otros accesos.</p></div></div>
+              <form id="accessForm" class="form-stack">
+                <label>Propiedad
+                  <select id="accessProperty" required></select>
+                </label>
+                <label>Unidad (opcional)
+                  <select id="accessUnit"></select>
+                </label>
+                <div class="form-row">
+                  <label>Tipo
+                    <select id="accessType" required></select>
+                  </label>
+                  <label>Etiqueta
+                    <input id="accessLabel" type="text" required maxlength="120" placeholder="Ej. Wi-Fi Depto 3B">
+                  </label>
+                </div>
+                <label>Usuario / identificador (no contraseña)
+                  <input id="accessLogin" type="text" maxlength="180">
+                </label>
+                <div class="form-row">
+                  <label>Gestor
+                    <select id="accessVaultProvider" required></select>
+                  </label>
+                  <label>Referencia del elemento
+                    <input id="accessVaultReference" type="text" maxlength="300" placeholder="URL o identificador del item">
+                  </label>
+                </div>
+                <label>Instrucciones no secretas
+                  <textarea id="accessInstructions" rows="3" maxlength="500" placeholder="Ej. El router está en el mueble de entrada."></textarea>
+                </label>
+                <div class="form-actions">
+                  <button id="accessSubmit" class="button" type="submit">Registrar referencia de acceso</button>
+                  <button id="accessCancel" class="button secondary hidden" type="button">Cancelar edición</button>
+                </div>
+              </form>
+            </section>
+            <section class="card">
+              <div class="card-header"><div><h2>Accesos registrados</h2><p>Solo metadatos y referencias; nunca el secreto.</p></div></div>
+              <div id="accessTable"></div>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <div id="loadingText">Procesando…</div>
+    </div>
+    <div id="toast" class="toast hidden"></div>
+
+    <?!= includeOnboardingFile_("OnboardingClient"); ?>
+  </body>
+</html>

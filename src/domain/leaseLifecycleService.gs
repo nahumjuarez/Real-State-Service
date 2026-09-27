@@ -1,7 +1,5 @@
 function closeLease(input) {
   var data = input || {};
-  var lease = assertRecordExists_("Leases", data.leaseId, "Lease");
-  var unit = assertRecordExists_("Units", lease.unit_id, "Unit");
   var targetStatus = requireEnumValue_(
     data.status || "ENDED",
     ["ENDED", "TERMINATED"],
@@ -11,81 +9,103 @@ function closeLease(input) {
     data.effectiveDate || new Date(),
     "Lease effective end date"
   );
+  var lock = LockService.getDocumentLock();
 
-  if (["ENDED", "TERMINATED"].indexOf(String(lease.status)) !== -1) {
-    throw new Error("Lease is already closed: " + lease.lease_id);
+  if (!lock.tryLock(30000)) {
+    throw new Error("Could not acquire lease lifecycle lock. Try again.");
   }
 
-  var startDate = requireValidDate_(lease.start_date, "Lease start date");
-  if (effectiveDate.getTime() < startDate.getTime()) {
-    throw new Error("Lease effective end date cannot be before start date.");
-  }
+  try {
+    var lease = assertRecordExists_("Leases", data.leaseId, "Lease");
+    var unit = assertRecordExists_("Units", lease.unit_id, "Unit");
 
-  var previous = {
-    status: lease.status,
-    end_date: lease.end_date
-  };
+    if (["ENDED", "TERMINATED"].indexOf(String(lease.status)) !== -1) {
+      throw new Error("Lease is already closed: " + lease.lease_id);
+    }
 
-  var updated = updateRecordById_("Leases", lease.lease_id, {
-    status: targetStatus,
-    end_date: effectiveDate,
-    updated_at: new Date()
-  });
+    var startDate = requireValidDate_(lease.start_date, "Lease start date");
+    if (effectiveDate.getTime() < startDate.getTime()) {
+      throw new Error("Lease effective end date cannot be before start date.");
+    }
 
-  var blockingLease = findRecordsByField_("Leases", "unit_id", unit.unit_id)
-    .some(function (candidate) {
-      return (
-        String(candidate.lease_id) !== String(lease.lease_id) &&
-        ["ACTIVE", "EXPIRING"].indexOf(String(candidate.status)) !== -1
-      );
-    });
+    var previous = {
+      status: lease.status,
+      end_date: lease.end_date
+    };
 
-  if (!blockingLease && String(unit.status) !== "OFF_MARKET") {
-    updateRecordById_("Units", unit.unit_id, {
-      status: "VACANT",
+    var updated = updateRecordById_("Leases", lease.lease_id, {
+      status: targetStatus,
+      end_date: effectiveDate,
       updated_at: new Date()
     });
-  }
 
-  appendAuditEvent_({
-    action: targetStatus === "TERMINATED" ? "LEASE_TERMINATED" : "LEASE_ENDED",
-    entityType: "LEASE",
-    entityId: lease.lease_id,
-    previousValue: previous,
-    newValue: {
-      status: updated.status,
-      end_date: updated.end_date,
-      reason: normalizeOptionalString_(data.reason)
+    var blockingLease = findRecordsByField_("Leases", "unit_id", unit.unit_id)
+      .some(function (candidate) {
+        return (
+          String(candidate.lease_id) !== String(lease.lease_id) &&
+          ["ACTIVE", "EXPIRING"].indexOf(String(candidate.status)) !== -1
+        );
+      });
+
+    if (!blockingLease && String(unit.status) !== "OFF_MARKET") {
+      updateRecordById_("Units", unit.unit_id, {
+        status: "VACANT",
+        updated_at: new Date()
+      });
     }
-  });
 
-  return {
-    lease: updated,
-    unit: assertRecordExists_("Units", unit.unit_id, "Unit")
-  };
+    appendAuditEvent_({
+      action: targetStatus === "TERMINATED" ? "LEASE_TERMINATED" : "LEASE_ENDED",
+      entityType: "LEASE",
+      entityId: lease.lease_id,
+      previousValue: previous,
+      newValue: {
+        status: updated.status,
+        end_date: updated.end_date,
+        reason: normalizeOptionalString_(data.reason)
+      }
+    });
+
+    return {
+      lease: updated,
+      unit: assertRecordExists_("Units", unit.unit_id, "Unit")
+    };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function markLeaseExpiring(leaseId) {
-  var lease = assertRecordExists_("Leases", leaseId, "Lease");
+  var lock = LockService.getDocumentLock();
 
-  if (String(lease.status) !== "ACTIVE") {
-    throw new Error("Only ACTIVE leases can be marked EXPIRING.");
+  if (!lock.tryLock(30000)) {
+    throw new Error("Could not acquire lease lifecycle lock. Try again.");
   }
 
-  var updated = updateRecordById_("Leases", lease.lease_id, {
-    status: "EXPIRING",
-    updated_at: new Date()
-  });
+  try {
+    var lease = assertRecordExists_("Leases", leaseId, "Lease");
 
-  appendAuditEvent_({
-    action: "LEASE_MARKED_EXPIRING",
-    entityType: "LEASE",
-    entityId: lease.lease_id,
-    previousValue: { status: lease.status },
-    newValue: { status: updated.status }
-  });
+    if (String(lease.status) !== "ACTIVE") {
+      throw new Error("Only ACTIVE leases can be marked EXPIRING.");
+    }
 
-  return updated;
+    var updated = updateRecordById_("Leases", lease.lease_id, {
+      status: "EXPIRING",
+      updated_at: new Date()
+    });
+
+    appendAuditEvent_({
+      action: "LEASE_MARKED_EXPIRING",
+      entityType: "LEASE",
+      entityId: lease.lease_id,
+      previousValue: { status: lease.status },
+      newValue: { status: updated.status }
+    });
+
+    return updated;
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function createLeaseRenewal(input) {
@@ -145,46 +165,56 @@ function createLeaseRenewal(input) {
 }
 
 function activateLease(leaseId) {
-  var lease = assertRecordExists_("Leases", leaseId, "Lease");
+  var lock = LockService.getDocumentLock();
 
-  if (String(lease.status) !== "DRAFT") {
-    throw new Error("Only DRAFT leases can be activated.");
+  if (!lock.tryLock(30000)) {
+    throw new Error("Could not acquire lease lifecycle lock. Try again.");
   }
 
-  var tenants = getLeaseTenants_(lease.lease_id);
-  if (tenants.length === 0) {
-    throw new Error("Cannot activate a lease without a tenant.");
+  try {
+    var lease = assertRecordExists_("Leases", leaseId, "Lease");
+
+    if (String(lease.status) !== "DRAFT") {
+      throw new Error("Only DRAFT leases can be activated.");
+    }
+
+    var tenants = getLeaseTenants_(lease.lease_id);
+    if (tenants.length === 0) {
+      throw new Error("Cannot activate a lease without a tenant.");
+    }
+
+    var unit = assertRecordExists_("Units", lease.unit_id, "Unit");
+    if (String(unit.status) === "OFF_MARKET") {
+      throw new Error("Cannot activate a lease for an OFF_MARKET unit.");
+    }
+
+    assertNoBlockingLeaseOverlap_(
+      unit.unit_id,
+      lease.start_date,
+      lease.end_date,
+      lease.lease_id
+    );
+
+    var updated = updateRecordById_("Leases", lease.lease_id, {
+      status: "ACTIVE",
+      updated_at: new Date()
+    });
+
+    updateRecordById_("Units", unit.unit_id, {
+      status: "OCCUPIED",
+      updated_at: new Date()
+    });
+
+    appendAuditEvent_({
+      action: "LEASE_ACTIVATED",
+      entityType: "LEASE",
+      entityId: lease.lease_id,
+      previousValue: { status: lease.status },
+      newValue: { status: "ACTIVE" }
+    });
+
+    return updated;
+  } finally {
+    lock.releaseLock();
   }
-
-  var unit = assertRecordExists_("Units", lease.unit_id, "Unit");
-  if (String(unit.status) === "OFF_MARKET") {
-    throw new Error("Cannot activate a lease for an OFF_MARKET unit.");
-  }
-
-  assertNoBlockingLeaseOverlap_(
-    unit.unit_id,
-    lease.start_date,
-    lease.end_date,
-    lease.lease_id
-  );
-
-  var updated = updateRecordById_("Leases", lease.lease_id, {
-    status: "ACTIVE",
-    updated_at: new Date()
-  });
-
-  updateRecordById_("Units", unit.unit_id, {
-    status: "OCCUPIED",
-    updated_at: new Date()
-  });
-
-  appendAuditEvent_({
-    action: "LEASE_ACTIVATED",
-    entityType: "LEASE",
-    entityId: lease.lease_id,
-    previousValue: { status: lease.status },
-    newValue: { status: "ACTIVE" }
-  });
-
-  return updated;
 }

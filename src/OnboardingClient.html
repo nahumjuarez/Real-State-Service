@@ -1,0 +1,1074 @@
+<script>
+(function () {
+  var state = null;
+  var editing = {
+    partyId: "",
+    propertyId: "",
+    unitId: "",
+    accessProfileId: ""
+  };
+  var $ = function (id) { return document.getElementById(id); };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    setDefaultDates_();
+    bindTabs_();
+    bindToolbar_();
+    bindForms_();
+    bindActions_();
+    bindDependentSelects_();
+    loadState_();
+  });
+
+  function today_() {
+    var d = new Date();
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+
+  function addYears_(dateString, years) {
+    var d = dateString ? new Date(dateString + "T12:00:00") : new Date();
+    d.setFullYear(d.getFullYear() + years);
+    return d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
+  }
+
+  function setDefaultDates_() {
+    var today = today_();
+    $("propertyOwnershipStart").value = today;
+    $("ownershipStart").value = today;
+    $("leaseStart").value = today;
+    $("leaseEnd").value = addYears_(today, 1);
+    $("leaseDepositDate").value = today;
+    $("depositDate").value = today;
+  }
+
+  function bindTabs_() {
+    document.querySelectorAll(".tab").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var tab = button.getAttribute("data-tab");
+        document.querySelectorAll(".tab").forEach(function (item) {
+          item.classList.toggle("active", item === button);
+        });
+        document.querySelectorAll(".tab-panel").forEach(function (panel) {
+          panel.classList.toggle("active", panel.id === "tab-" + tab);
+        });
+      });
+    });
+  }
+
+  function bindToolbar_() {
+    $("refreshBtn").addEventListener("click", loadState_);
+    $("validateBtn").addEventListener("click", function () {
+      setLoading_(true, "Validando portafolio…");
+      callServer_("validate", {})
+        .then(function (result) {
+          setLoading_(false);
+          if (result.ok) {
+            window.alert(
+              "Onboarding listo para operación.\n\n" +
+              "No se detectaron bloqueos ni depósitos pendientes."
+            );
+          } else {
+            var lines = (result.blockers || []).map(function (gap) {
+              return "• " + gap.label + ": " + gap.message;
+            });
+            window.alert(
+              "Todavía hay acciones pendientes:\n\n" +
+              (lines.length ? lines.join("\n") : "Completa la configuración inicial.")
+            );
+          }
+        })
+        .catch(handleError_);
+    });
+  }
+
+  function bindForms_() {
+    $("partyForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var isEdit = Boolean(editing.partyId);
+      submit_(
+        isEdit ? "updateParty" : "party",
+        {
+          partyId: editing.partyId,
+          partyType: $("partyType").value,
+          legalName: $("partyLegalName").value,
+          preferredName: $("partyPreferredName").value,
+          email: $("partyEmail").value,
+          phone: $("partyPhone").value,
+          status: "ACTIVE"
+        },
+        isEdit ? "Persona / organización actualizada." : "Persona / organización creada.",
+        event.target,
+        function () { resetPartyForm_(); }
+      );
+    });
+
+    $("propertyForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var isEdit = Boolean(editing.propertyId);
+      var payload = {
+        propertyId: editing.propertyId,
+        propertyName: $("propertyName").value,
+        propertyType: $("propertyType").value,
+        street: $("propertyStreet").value,
+        neighborhood: $("propertyNeighborhood").value,
+        municipality: $("propertyMunicipality").value,
+        state: $("propertyState").value,
+        postalCode: $("propertyPostalCode").value,
+        country: "MX",
+        acquisitionDate: $("propertyAcquisitionDate").value,
+        acquisitionPrice: $("propertyAcquisitionPrice").value,
+        predialAccount: $("propertyPredial").value,
+        status: "ACTIVE"
+      };
+
+      if (!isEdit) {
+        payload.ownerPartyId = $("propertyOwner").value;
+        payload.ownershipPercent = $("propertyOwnershipPercent").value;
+        payload.ownershipStartDate = $("propertyOwnershipStart").value;
+      }
+
+      submit_(
+        isEdit ? "updateProperty" : "property",
+        payload,
+        isEdit ? "Propiedad actualizada." : "Propiedad creada.",
+        event.target,
+        function () { resetPropertyForm_(); }
+      );
+    });
+
+    $("ownershipForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      submit_("ownership", {
+        propertyId: $("ownershipProperty").value,
+        partyId: $("ownershipParty").value,
+        ownershipPercent: $("ownershipPercent").value,
+        startDate: $("ownershipStart").value,
+        endDate: $("ownershipEnd").value
+      }, "Ownership registrado.", event.target, function () {
+        $("ownershipStart").value = today_();
+      });
+    });
+
+    $("unitForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var isEdit = Boolean(editing.unitId);
+      submit_(
+        isEdit ? "updateUnit" : "unit",
+        {
+          unitId: editing.unitId,
+          propertyId: $("unitProperty").value,
+          unitName: $("unitName").value,
+          unitType: $("unitType").value,
+          floor: $("unitFloor").value,
+          bedrooms: $("unitBedrooms").value,
+          bathrooms: $("unitBathrooms").value,
+          parkingSpaces: $("unitParking").value,
+          areaM2: $("unitArea").value,
+          rentableAreaM2: $("unitRentableArea").value,
+          status: $("unitStatus").value
+        },
+        isEdit ? "Unidad actualizada." : "Unidad creada.",
+        event.target,
+        function () { resetUnitForm_(); }
+      );
+    });
+
+    $("leaseForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      submit_("lease", {
+        unitId: $("leaseUnit").value,
+        tenantPartyId: $("leaseTenant").value,
+        coTenantPartyId: $("leaseCoTenant").value,
+        guarantorPartyId: $("leaseGuarantor").value,
+        startDate: $("leaseStart").value,
+        endDate: $("leaseEnd").value,
+        baseRent: $("leaseRent").value,
+        paymentDueDay: $("leaseDueDay").value,
+        rentAdjustmentRule: $("leaseAdjustment").value,
+        depositRequired: $("leaseDepositRequired").value,
+        depositAmountReceived: $("leaseDepositReceived").value,
+        depositDateReceived: $("leaseDepositDate").value,
+        status: "ACTIVE"
+      }, "Contrato cargado.", event.target, function () {
+        $("leaseStart").value = today_();
+        $("leaseEnd").value = addYears_(today_(), 1);
+        $("leaseDueDay").value = "5";
+        $("leaseDepositDate").value = today_();
+      });
+    });
+
+    $("depositForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      submit_("deposit", {
+        leaseId: $("depositLease").value,
+        amountReceived: $("depositAmount").value,
+        dateReceived: $("depositDate").value
+      }, "Depósito registrado.", event.target, function () {
+        $("depositDate").value = today_();
+      });
+    });
+
+    $("accessForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var isEdit = Boolean(editing.accessProfileId);
+      submit_(
+        isEdit ? "updateAccess" : "access",
+        {
+          accessProfileId: editing.accessProfileId,
+          propertyId: $("accessProperty").value,
+          unitId: $("accessUnit").value,
+          accessType: $("accessType").value,
+          label: $("accessLabel").value,
+          loginIdentifier: $("accessLogin").value,
+          vaultProvider: $("accessVaultProvider").value,
+          vaultItemReference: $("accessVaultReference").value,
+          instructions: $("accessInstructions").value,
+          status: "ACTIVE"
+        },
+        isEdit ? "Referencia de acceso actualizada." : "Referencia de acceso registrada.",
+        event.target,
+        function () { resetAccessForm_(); }
+      );
+    });
+
+    $("renewalForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      submit_("renewal", {
+        leaseId: $("renewalLease").value,
+        startDate: $("renewalStart").value,
+        endDate: $("renewalEnd").value,
+        baseRent: $("renewalRent").value,
+        depositRequired: $("renewalDeposit").value
+      }, "Renovación creada como DRAFT.", event.target);
+    });
+
+    $("partyCancel").addEventListener("click", resetPartyForm_);
+    $("propertyCancel").addEventListener("click", resetPropertyForm_);
+    $("unitCancel").addEventListener("click", resetUnitForm_);
+    $("accessCancel").addEventListener("click", resetAccessForm_);
+  }
+
+  function bindActions_() {
+    document.body.addEventListener("click", function (event) {
+      var target = event.target.closest("[data-action]");
+      if (!target) return;
+
+      var action = target.getAttribute("data-action");
+      var id = target.getAttribute("data-id");
+
+      if (action === "edit-party") {
+        startPartyEdit_(id);
+        return;
+      }
+
+      if (action === "edit-property") {
+        startPropertyEdit_(id);
+        return;
+      }
+
+      if (action === "edit-unit") {
+        startUnitEdit_(id);
+        return;
+      }
+
+      if (action === "edit-access") {
+        startAccessEdit_(id);
+        return;
+      }
+
+      if (action === "activate-lease") {
+        if (!window.confirm("¿Activar este contrato DRAFT?")) return;
+        performAction_("activateLease", { leaseId: id }, "Contrato activado.");
+        return;
+      }
+
+      if (action === "archive-access") {
+        if (!window.confirm("¿Archivar esta referencia de acceso?")) return;
+        performAction_("archiveAccess", { accessProfileId: id }, "Acceso archivado.");
+        return;
+      }
+
+      if (action === "end-ownership") {
+        var endDate = window.prompt(
+          "Fecha de fin del ownership (YYYY-MM-DD):",
+          today_()
+        );
+        if (!endDate) return;
+        var reason = window.prompt("Motivo (opcional):", "") || "";
+        performAction_(
+          "endOwnership",
+          { ownershipId: id, endDate: endDate, reason: reason },
+          "Ownership cerrado."
+        );
+      }
+    });
+  }
+
+  function switchTab_(tabName) {
+    document.querySelectorAll(".tab").forEach(function (button) {
+      button.classList.toggle(
+        "active",
+        button.getAttribute("data-tab") === tabName
+      );
+    });
+    document.querySelectorAll(".tab-panel").forEach(function (panel) {
+      panel.classList.toggle("active", panel.id === "tab-" + tabName);
+    });
+  }
+
+  function startPartyEdit_(partyId) {
+    var party = findById_(state.parties, "partyId", partyId);
+    if (!party) return;
+
+    editing.partyId = partyId;
+    $("partyType").value = party.partyType || "PERSON";
+    $("partyLegalName").value = party.legalName || "";
+    $("partyPreferredName").value = party.preferredName || "";
+    $("partyEmail").value = party.email || "";
+    $("partyPhone").value = party.phone || "";
+    $("partySubmit").textContent = "Guardar cambios";
+    $("partyCancel").classList.remove("hidden");
+    switchTab_("people");
+    $("partyLegalName").focus();
+  }
+
+  function resetPartyForm_() {
+    editing.partyId = "";
+    $("partyForm").reset();
+    $("partyType").value = "PERSON";
+    $("partySubmit").textContent = "Crear persona / organización";
+    $("partyCancel").classList.add("hidden");
+  }
+
+  function startPropertyEdit_(propertyId) {
+    var property = findById_(state.properties, "propertyId", propertyId);
+    if (!property) return;
+
+    editing.propertyId = propertyId;
+    $("propertyName").value = property.propertyName || "";
+    $("propertyType").value = property.propertyType || "APARTMENT";
+    $("propertyStreet").value = property.street || "";
+    $("propertyNeighborhood").value = property.neighborhood || "";
+    $("propertyMunicipality").value = property.municipality || "";
+    $("propertyState").value = property.state || "";
+    $("propertyPostalCode").value = property.postalCode || "";
+    $("propertyAcquisitionDate").value = property.acquisitionDate || "";
+    $("propertyAcquisitionPrice").value =
+      property.acquisitionPrice === null || property.acquisitionPrice === undefined
+        ? ""
+        : property.acquisitionPrice;
+    $("propertyPredial").value = property.predialAccount || "";
+    $("propertyOwnershipSection").classList.add("hidden");
+    $("propertySubmit").textContent = "Guardar cambios";
+    $("propertyCancel").classList.remove("hidden");
+    switchTab_("properties");
+    $("propertyName").focus();
+  }
+
+  function resetPropertyForm_() {
+    editing.propertyId = "";
+    $("propertyForm").reset();
+    $("propertyState").value = "Puebla";
+    $("propertyOwnershipPercent").value = "100";
+    $("propertyOwnershipStart").value = today_();
+    $("propertyOwnershipSection").classList.remove("hidden");
+    $("propertySubmit").textContent = "Crear propiedad";
+    $("propertyCancel").classList.add("hidden");
+  }
+
+  function startUnitEdit_(unitId) {
+    var unit = findById_(state.units, "unitId", unitId);
+    if (!unit) return;
+
+    editing.unitId = unitId;
+    $("unitProperty").value = unit.propertyId || "";
+    $("unitProperty").disabled = true;
+    $("unitName").value = unit.unitName || "";
+    $("unitType").value = unit.unitType || "APARTMENT";
+    $("unitFloor").value = unit.floor || "";
+    $("unitBedrooms").value = nullableInput_(unit.bedrooms);
+    $("unitBathrooms").value = nullableInput_(unit.bathrooms);
+    $("unitParking").value = nullableInput_(unit.parkingSpaces);
+    $("unitArea").value = nullableInput_(unit.areaM2);
+    $("unitRentableArea").value = nullableInput_(unit.rentableAreaM2);
+
+    ensureSelectOption_($("unitStatus"), unit.status);
+    $("unitStatus").value = unit.status || "VACANT";
+    $("unitSubmit").textContent = "Guardar cambios";
+    $("unitCancel").classList.remove("hidden");
+    switchTab_("units");
+    $("unitName").focus();
+  }
+
+  function resetUnitForm_() {
+    editing.unitId = "";
+    $("unitForm").reset();
+    $("unitProperty").disabled = false;
+    $("unitStatus").value = "VACANT";
+    $("unitSubmit").textContent = "Crear unidad";
+    $("unitCancel").classList.add("hidden");
+  }
+
+  function startAccessEdit_(accessProfileId) {
+    var item = findById_(
+      state.accessProfiles,
+      "accessProfileId",
+      accessProfileId
+    );
+    if (!item) return;
+
+    editing.accessProfileId = accessProfileId;
+    $("accessProperty").value = item.propertyId || "";
+    renderAccessUnitSelect_();
+    $("accessUnit").value = item.unitId || "";
+    $("accessType").value = item.accessType || "OTHER";
+    $("accessLabel").value = item.label || "";
+    $("accessLogin").value = item.loginIdentifier || "";
+    $("accessVaultProvider").value = item.vaultProvider || "OTHER";
+    $("accessVaultReference").value = item.vaultItemReference || "";
+    $("accessInstructions").value = item.instructions || "";
+    $("accessSubmit").textContent = "Guardar cambios";
+    $("accessCancel").classList.remove("hidden");
+    switchTab_("access");
+    $("accessLabel").focus();
+  }
+
+  function resetAccessForm_() {
+    editing.accessProfileId = "";
+    $("accessForm").reset();
+    renderAccessUnitSelect_();
+    $("accessSubmit").textContent = "Registrar referencia de acceso";
+    $("accessCancel").classList.add("hidden");
+  }
+
+  function findById_(items, key, id) {
+    return (items || []).filter(function (item) {
+      return String(item[key]) === String(id);
+    })[0] || null;
+  }
+
+  function nullableInput_(value) {
+    return value === null || value === undefined ? "" : value;
+  }
+
+  function ensureSelectOption_(select, value) {
+    if (!value) return;
+    var exists = Array.from(select.options).some(function (option) {
+      return option.value === value;
+    });
+    if (!exists) {
+      var option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      select.appendChild(option);
+    }
+  }
+
+  function bindDependentSelects_() {
+    $("accessProperty").addEventListener("change", renderAccessUnitSelect_);
+    $("leaseStart").addEventListener("change", function () {
+      if (!$("leaseEnd").value) $("leaseEnd").value = addYears_($("leaseStart").value, 1);
+      if (!$("leaseDepositDate").value) $("leaseDepositDate").value = $("leaseStart").value;
+    });
+    $("renewalLease").addEventListener("change", updateRenewalDefaults_);
+  }
+
+  function submit_(method, payload, successMessage, form, afterReset) {
+    setLoading_(true, "Guardando…");
+    callServer_(method, payload)
+      .then(function () {
+        showToast_(successMessage);
+        if (form) form.reset();
+        if (afterReset) afterReset();
+        return loadState_(true);
+      })
+      .catch(handleError_);
+  }
+
+  function performAction_(method, payload, successMessage) {
+    setLoading_(true, "Actualizando…");
+    callServer_(method, payload)
+      .then(function () {
+        showToast_(successMessage);
+        return loadState_(true);
+      })
+      .catch(handleError_);
+  }
+
+  function loadState_(keepLoading) {
+    if (!keepLoading) setLoading_(true, "Cargando portafolio…");
+    return callServer_("state", {})
+      .then(function (result) {
+        state = result;
+        render_();
+        setLoading_(false);
+        return result;
+      })
+      .catch(handleError_);
+  }
+
+  function render_() {
+    if (!state) return;
+    $("instanceMeta").textContent =
+      state.environment + " · v" + state.appVersion + " · schema " + state.schemaVersion;
+
+    renderProgress_();
+    renderCounts_();
+    renderGaps_();
+    renderParties_();
+    renderProperties_();
+    renderOwnership_();
+    renderUnits_();
+    renderLeases_();
+    renderDepositCoverage_();
+    renderAccess_();
+    populateSelects_();
+  }
+
+  function renderProgress_() {
+    var progress = state.progress || { percent: 0, completed: 0, total: 0, checks: [] };
+    $("progressLabel").textContent = progress.percent + "%";
+    $("progressText").textContent =
+      progress.completed + " de " + progress.total + " controles completos";
+    $("progressBar").style.width = progress.percent + "%";
+
+    $("checkGrid").innerHTML = (progress.checks || []).map(function (check) {
+      return '<div class="check-item ' + (check.done ? "done" : "") + '">' +
+        '<div class="check-title">' + (check.done ? "✓ " : "○ ") + escapeHtml_(check.label) + '</div>' +
+        '<div class="check-detail">' + escapeHtml_(check.detail || "") + '</div>' +
+        '</div>';
+    }).join("");
+  }
+
+  function renderCounts_() {
+    var counts = state.counts || {};
+    var cards = [
+      ["Propiedades", counts.properties || 0],
+      ["Unidades", counts.units || 0],
+      ["Contratos activos", counts.activeLeases || 0],
+      ["Accesos", counts.accessProfiles || 0]
+    ];
+    $("countGrid").innerHTML = cards.map(function (item) {
+      return '<div class="count-card"><div class="count-value">' +
+        item[1] + '</div><div class="count-label">' +
+        escapeHtml_(item[0]) + '</div></div>';
+    }).join("");
+  }
+
+  function renderGaps_() {
+    var gaps = state.gaps || [];
+    if (!gaps.length) {
+      $("gapsList").innerHTML =
+        '<div class="empty">No se detectan bloqueos de onboarding.</div>';
+      return;
+    }
+
+    $("gapsList").innerHTML =
+      '<div class="gap-list">' +
+      gaps.map(function (gap) {
+        var css = gap.severity === "BLOCKER" ? "blocker" : "action";
+        return '<div class="gap-item ' + css + '">' +
+          '<div class="gap-title">' + escapeHtml_(gap.label || gap.code) + '</div>' +
+          '<div class="gap-message">' + escapeHtml_(gap.message || "") + '</div>' +
+          (gap.detail !== "" && gap.detail !== undefined
+            ? '<div class="gap-detail">' + escapeHtml_(String(gap.detail)) + '</div>'
+            : "") +
+          '</div>';
+      }).join("") +
+      '</div>';
+  }
+
+  function renderParties_() {
+    var rows = (state.parties || []).map(function (party) {
+      return '<tr><td><strong>' + escapeHtml_(party.preferredName || party.legalName) +
+        '</strong><span class="subtle">' + escapeHtml_(party.legalName) + '</span></td>' +
+        '<td>' + badge_(party.partyType, "info") + '</td>' +
+        '<td>' + escapeHtml_(party.email || "—") + '</td>' +
+        '<td>' + escapeHtml_(party.phone || "—") + '</td>' +
+        '<td><button class="button secondary small" data-action="edit-party" data-id="' +
+        escapeAttr_(party.partyId) + '">Editar</button></td></tr>';
+    }).join("");
+    $("partiesTable").innerHTML = table_(
+      ["Nombre", "Tipo", "Correo", "Teléfono", "Acción"],
+      rows,
+      "Aún no hay personas u organizaciones."
+    );
+  }
+
+  function renderProperties_() {
+    var rows = (state.properties || []).map(function (property) {
+      var ownershipClass =
+        property.ownershipPercent >= 99.999 && property.ownershipPercent <= 100.001
+          ? "success"
+          : property.ownershipPercent > 100.001
+            ? "danger"
+            : "warning";
+      return '<tr><td><strong>' + escapeHtml_(property.propertyName) +
+        '</strong><span class="subtle">' +
+        escapeHtml_([property.municipality, property.state].filter(Boolean).join(", ")) +
+        '</span></td><td>' + escapeHtml_(property.propertyType) + '</td>' +
+        '<td>' + badge_(formatNumber_(property.ownershipPercent) + "%", ownershipClass) +
+        '</td><td><button class="button secondary small" data-action="edit-property" data-id="' +
+        escapeAttr_(property.propertyId) + '">Editar</button></td></tr>';
+    }).join("");
+    $("propertiesTable").innerHTML = table_(
+      ["Propiedad", "Tipo", "Ownership", "Acción"],
+      rows,
+      "Aún no hay propiedades."
+    );
+  }
+
+  function renderOwnership_() {
+    var rows = (state.ownerships || []).map(function (item) {
+      var active = !item.endDate;
+      return '<tr><td>' + escapeHtml_(item.propertyName) + '</td>' +
+        '<td>' + escapeHtml_(item.ownerName) + '</td>' +
+        '<td>' + formatNumber_(item.ownershipPercent) + '%</td>' +
+        '<td class="nowrap">' + escapeHtml_(item.startDate || "—") +
+        '<span class="subtle">' + (item.endDate ? "hasta " + escapeHtml_(item.endDate) : "vigente") +
+        '</span></td><td>' +
+        (active
+          ? '<button class="button secondary small" data-action="end-ownership" data-id="' +
+            escapeAttr_(item.ownershipId) + '">Cerrar</button>'
+          : badge_("HISTÓRICO", "info")) +
+        '</td></tr>';
+    }).join("");
+    $("ownershipTable").innerHTML = table_(
+      ["Propiedad", "Propietario", "%", "Vigencia", "Acción"],
+      rows,
+      "Aún no hay ownership registrado."
+    );
+  }
+
+  function renderUnits_() {
+    var rows = (state.units || []).map(function (unit) {
+      var statusClass =
+        unit.status === "OCCUPIED" ? "success" :
+        unit.status === "OFF_MARKET" ? "warning" : "info";
+      return '<tr><td><strong>' + escapeHtml_(unit.unitName) +
+        '</strong><span class="subtle">' + escapeHtml_(unit.propertyName) + '</span></td>' +
+        '<td>' + escapeHtml_(unit.unitType) + '</td>' +
+        '<td>' + badge_(unit.status, statusClass) + '</td>' +
+        '<td>' + escapeHtml_(unit.floor || "—") + '</td>' +
+        '<td>' + (unit.areaM2 === null ? "—" : formatNumber_(unit.areaM2) + " m²") +
+        '</td><td><button class="button secondary small" data-action="edit-unit" data-id="' +
+        escapeAttr_(unit.unitId) + '">Editar</button></td></tr>';
+    }).join("");
+    $("unitsTable").innerHTML = table_(
+      ["Unidad", "Tipo", "Estado", "Piso", "Área", "Acción"],
+      rows,
+      "Aún no hay unidades."
+    );
+  }
+
+  function renderLeases_() {
+    var rows = (state.leases || []).map(function (lease) {
+      var statusClass =
+        lease.status === "ACTIVE" ? "success" :
+        lease.status === "DRAFT" ? "warning" :
+        lease.status === "EXPIRING" ? "warning" : "info";
+
+      return '<tr><td><strong>' + escapeHtml_(lease.unitName) +
+        '</strong><span class="subtle">' + escapeHtml_(lease.propertyName) + '</span></td>' +
+        '<td>' + escapeHtml_(lease.tenantName || "Sin inquilino") + '</td>' +
+        '<td class="nowrap">' + escapeHtml_(lease.startDate) +
+        '<span class="subtle">' + escapeHtml_(lease.endDate) + '</span></td>' +
+        '<td>$' + money_(lease.baseRent) + '</td>' +
+        '<td>' + badge_(lease.status, statusClass) + '</td>' +
+        '<td>' +
+        (lease.status === "DRAFT"
+          ? '<button class="button small" data-action="activate-lease" data-id="' +
+            escapeAttr_(lease.leaseId) + '">Activar</button>'
+          : "") +
+        '</td></tr>';
+    }).join("");
+
+    $("leasesTable").innerHTML = table_(
+      ["Unidad", "Inquilino", "Vigencia", "Renta", "Estado", "Acción"],
+      rows,
+      "Aún no hay contratos."
+    );
+  }
+
+  function renderDepositCoverage_() {
+    var leases = state.leases || [];
+    var rows = leases.map(function (lease) {
+      var required = Number(lease.depositRequired || 0);
+      var held = Number(lease.depositHeld || 0);
+      var coverage =
+        required <= 0 ? badge_("NO REQUERIDO", "info") :
+        lease.depositId ? badge_("$" + money_(held) + " HELD", "success") :
+        badge_("PENDIENTE", "warning");
+
+      return '<tr><td><strong>' + escapeHtml_(lease.unitName) +
+        '</strong><span class="subtle">' + escapeHtml_(lease.propertyName) + '</span></td>' +
+        '<td>' + escapeHtml_(lease.tenantName || "—") + '</td>' +
+        '<td>$' + money_(required) + '</td><td>' + coverage + '</td></tr>';
+    }).join("");
+
+    $("depositCoverage").innerHTML = table_(
+      ["Unidad", "Inquilino", "Requerido", "Estado"],
+      rows,
+      "Aún no hay contratos."
+    );
+  }
+
+  function renderAccess_() {
+    var rows = (state.accessProfiles || [])
+      .filter(function (item) { return item.status === "ACTIVE"; })
+      .map(function (item) {
+        return '<tr><td><strong>' + escapeHtml_(item.label) +
+          '</strong><span class="subtle">' +
+          escapeHtml_([item.propertyName, item.unitName].filter(Boolean).join(" · ")) +
+          '</span></td><td>' + escapeHtml_(item.accessType) + '</td>' +
+          '<td>' + escapeHtml_(item.vaultProvider) +
+          '<span class="subtle">' + escapeHtml_(item.vaultItemReference || "Sin referencia") +
+          '</span></td><td>' +
+          '<button class="button secondary small" data-action="edit-access" data-id="' +
+          escapeAttr_(item.accessProfileId) + '">Editar</button> ' +
+          '<button class="button secondary small" data-action="archive-access" data-id="' +
+          escapeAttr_(item.accessProfileId) + '">Archivar</button></td></tr>';
+      }).join("");
+
+    $("accessTable").innerHTML = table_(
+      ["Acceso", "Tipo", "Bóveda", "Acción"],
+      rows,
+      "Aún no hay referencias de acceso."
+    );
+  }
+
+  function renderPortfolioTable_() {
+    var properties = state.properties || [];
+    var units = state.units || [];
+    var leases = state.leases || [];
+    var rows = [];
+
+    properties.forEach(function (property) {
+      var propertyUnits = units.filter(function (unit) {
+        return unit.propertyId === property.propertyId;
+      });
+
+      if (!propertyUnits.length) {
+        rows.push(
+          '<tr><td><strong>' + escapeHtml_(property.propertyName) +
+          '</strong></td><td>—</td><td>' + badge_("SIN UNIDADES", "warning") +
+          '</td><td>—</td></tr>'
+        );
+        return;
+      }
+
+      propertyUnits.forEach(function (unit) {
+        var lease = leases.filter(function (candidate) {
+          return candidate.unitId === unit.unitId &&
+            ["ACTIVE", "EXPIRING"].indexOf(candidate.status) !== -1;
+        })[0];
+
+        rows.push(
+          '<tr><td><strong>' + escapeHtml_(property.propertyName) + '</strong></td>' +
+          '<td>' + escapeHtml_(unit.unitName) + '</td>' +
+          '<td>' + badge_(unit.status, unit.status === "OCCUPIED" ? "success" : "info") + '</td>' +
+          '<td>' + (lease ? escapeHtml_(lease.tenantName || "Sin inquilino") : "—") + '</td></tr>'
+        );
+      });
+    });
+
+    $("portfolioTable").innerHTML = table_(
+      ["Propiedad", "Unidad", "Estado", "Inquilino"],
+      rows.join(""),
+      "El portafolio está vacío."
+    );
+  }
+
+  function populateSelects_() {
+    optionList_(
+      $("propertyType"),
+      state.enums.propertyTypes,
+      function (value) { return value; },
+      false
+    );
+    optionList_(
+      $("unitType"),
+      state.enums.unitTypes,
+      function (value) { return value; },
+      false
+    );
+    optionList_(
+      $("accessType"),
+      state.enums.accessTypes,
+      function (value) { return value; },
+      false
+    );
+    optionList_(
+      $("accessVaultProvider"),
+      state.enums.vaultProviders,
+      function (value) { return value; },
+      false
+    );
+
+    entitySelect_(
+      $("propertyOwner"),
+      state.parties,
+      "partyId",
+      partyName_,
+      "Sin ownership inicial"
+    );
+    entitySelect_(
+      $("ownershipParty"),
+      state.parties,
+      "partyId",
+      partyName_,
+      "Selecciona propietario"
+    );
+    entitySelect_(
+      $("leaseTenant"),
+      state.parties,
+      "partyId",
+      partyName_,
+      "Selecciona inquilino"
+    );
+    entitySelect_(
+      $("leaseCoTenant"),
+      state.parties,
+      "partyId",
+      partyName_,
+      "Sin co-inquilino"
+    );
+    entitySelect_(
+      $("leaseGuarantor"),
+      state.parties,
+      "partyId",
+      partyName_,
+      "Sin fiador / garante"
+    );
+
+    entitySelect_(
+      $("ownershipProperty"),
+      state.properties,
+      "propertyId",
+      function (item) { return item.propertyName; },
+      "Selecciona propiedad"
+    );
+    entitySelect_(
+      $("unitProperty"),
+      state.properties,
+      "propertyId",
+      function (item) { return item.propertyName; },
+      "Selecciona propiedad"
+    );
+    entitySelect_(
+      $("accessProperty"),
+      state.properties,
+      "propertyId",
+      function (item) { return item.propertyName; },
+      "Selecciona propiedad"
+    );
+
+    entitySelect_(
+      $("leaseUnit"),
+      (state.units || []).filter(function (item) {
+        return item.status !== "OFF_MARKET";
+      }),
+      "unitId",
+      function (item) { return item.propertyName + " · " + item.unitName; },
+      "Selecciona unidad"
+    );
+
+    entitySelect_(
+      $("depositLease"),
+      (state.leases || []).filter(function (item) {
+        return !item.depositId;
+      }),
+      "leaseId",
+      function (item) {
+        return item.propertyName + " · " + item.unitName + " · " +
+          (item.tenantName || "sin inquilino");
+      },
+      "Selecciona contrato"
+    );
+
+    entitySelect_(
+      $("renewalLease"),
+      (state.leases || []).filter(function (item) {
+        return ["ACTIVE", "EXPIRING"].indexOf(item.status) !== -1;
+      }),
+      "leaseId",
+      function (item) {
+        return item.propertyName + " · " + item.unitName + " · " + item.endDate;
+      },
+      "Selecciona contrato"
+    );
+
+    renderAccessUnitSelect_();
+    updateRenewalDefaults_();
+    renderPortfolioTable_();
+  }
+
+  function renderAccessUnitSelect_() {
+    if (!state) return;
+    var propertyId = $("accessProperty").value;
+    var filtered = (state.units || []).filter(function (unit) {
+      return !propertyId || unit.propertyId === propertyId;
+    });
+    entitySelect_(
+      $("accessUnit"),
+      filtered,
+      "unitId",
+      function (item) { return item.unitName; },
+      "Toda la propiedad"
+    );
+  }
+
+  function updateRenewalDefaults_() {
+    if (!state) return;
+    var id = $("renewalLease").value;
+    var lease = (state.leases || []).filter(function (item) {
+      return item.leaseId === id;
+    })[0];
+    if (!lease) return;
+
+    var nextStart = new Date(lease.endDate + "T12:00:00");
+    nextStart.setDate(nextStart.getDate() + 1);
+    var nextStartText =
+      nextStart.getFullYear() + "-" +
+      String(nextStart.getMonth() + 1).padStart(2, "0") + "-" +
+      String(nextStart.getDate()).padStart(2, "0");
+
+    $("renewalStart").value = nextStartText;
+    $("renewalEnd").value = addYears_(nextStartText, 1);
+    $("renewalRent").placeholder = String(lease.baseRent || "");
+    $("renewalDeposit").placeholder = String(lease.depositRequired || "");
+  }
+
+  function entitySelect_(select, items, valueKey, labelFn, placeholder) {
+    var current = select.value;
+    var html = placeholder !== null
+      ? '<option value="">' + escapeHtml_(placeholder || "Selecciona") + '</option>'
+      : "";
+
+    html += (items || []).map(function (item) {
+      return '<option value="' + escapeAttr_(item[valueKey]) + '">' +
+        escapeHtml_(labelFn(item)) + '</option>';
+    }).join("");
+
+    select.innerHTML = html;
+    if (current && Array.from(select.options).some(function (option) {
+      return option.value === current;
+    })) {
+      select.value = current;
+    }
+  }
+
+  function optionList_(select, values, labelFn, allowBlank) {
+    var current = select.value;
+    var html = allowBlank ? '<option value="">Selecciona</option>' : "";
+    html += (values || []).map(function (value) {
+      return '<option value="' + escapeAttr_(value) + '">' +
+        escapeHtml_(labelFn(value)) + '</option>';
+    }).join("");
+    select.innerHTML = html;
+    if (current) select.value = current;
+  }
+
+  function partyName_(party) {
+    return party.preferredName || party.legalName || party.partyId;
+  }
+
+  function table_(headers, rows, emptyMessage) {
+    if (!rows) return '<div class="empty">' + escapeHtml_(emptyMessage) + '</div>';
+    return '<div class="table-wrap"><table><thead><tr>' +
+      headers.map(function (header) {
+        return '<th>' + escapeHtml_(header) + '</th>';
+      }).join("") +
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  function badge_(text, kind) {
+    return '<span class="badge ' + escapeAttr_(kind || "") + '">' +
+      escapeHtml_(String(text || "")) + '</span>';
+  }
+
+  function formatNumber_(value) {
+    var number = Number(value || 0);
+    return number.toLocaleString("es-MX", { maximumFractionDigits: 2 });
+  }
+
+  function money_(value) {
+    return Number(value || 0).toLocaleString("es-MX", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  function callServer_(method, payload) {
+    return new Promise(function (resolve, reject) {
+      var runner = google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(function (error) {
+          reject(error || new Error("Apps Script request failed."));
+        });
+
+      if (method === "state") return runner.getOnboardingUiState();
+      if (method === "party") return runner.createOnboardingPartyFromUi(payload);
+      if (method === "updateParty") return runner.updateOnboardingPartyFromUi(payload);
+      if (method === "property") return runner.createOnboardingPropertyFromUi(payload);
+      if (method === "updateProperty") return runner.updateOnboardingPropertyFromUi(payload);
+      if (method === "ownership") return runner.createOnboardingOwnershipFromUi(payload);
+      if (method === "endOwnership") return runner.endOnboardingOwnershipFromUi(payload);
+      if (method === "unit") return runner.createOnboardingUnitFromUi(payload);
+      if (method === "updateUnit") return runner.updateOnboardingUnitFromUi(payload);
+      if (method === "lease") return runner.createOnboardingLeaseFromUi(payload);
+      if (method === "deposit") return runner.recordOnboardingDepositFromUi(payload);
+      if (method === "access") return runner.createOnboardingAccessProfileFromUi(payload);
+      if (method === "updateAccess") return runner.updateOnboardingAccessProfileFromUi(payload);
+      if (method === "archiveAccess") return runner.archiveOnboardingAccessProfileFromUi(payload);
+      if (method === "renewal") return runner.createOnboardingRenewalFromUi(payload);
+      if (method === "activateLease") return runner.activateOnboardingLeaseFromUi(payload);
+      if (method === "validate") return runner.validateOnboardingForAutomationFromUi();
+
+      reject(new Error("Unknown onboarding method: " + method));
+    });
+  }
+
+  function setLoading_(visible, text) {
+    $("loadingText").textContent = text || "Procesando…";
+    $("loadingOverlay").classList.toggle("hidden", !visible);
+  }
+
+  function showToast_(message, isError) {
+    var toast = $("toast");
+    toast.textContent = message;
+    toast.classList.toggle("error", Boolean(isError));
+    toast.classList.remove("hidden");
+    window.clearTimeout(showToast_._timer);
+    showToast_._timer = window.setTimeout(function () {
+      toast.classList.add("hidden");
+    }, 4200);
+  }
+
+  function handleError_(error) {
+    setLoading_(false);
+    var message =
+      error && error.message ? error.message :
+      typeof error === "string" ? error :
+      "Ocurrió un error inesperado.";
+    showToast_(message, true);
+    console.error(error);
+  }
+
+  function escapeHtml_(value) {
+    return String(value === undefined || value === null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function escapeAttr_(value) {
+    return escapeHtml_(value);
+  }
+})();
+</script>

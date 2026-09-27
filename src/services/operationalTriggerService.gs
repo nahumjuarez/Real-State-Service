@@ -1,4 +1,18 @@
 function ensureOperationalTriggers() {
+  var environment = String(getSetting_("environment") || "").toUpperCase();
+
+  if (environment === "PROD") {
+    var onboarding = validateOnboardingForAutomation();
+    if (!onboarding.ok) {
+      throw new Error(
+        "Monthly automation is blocked until onboarding is complete. " +
+          onboarding.blockers.map(function (gap) {
+            return gap.label + ": " + gap.message;
+          }).join("; ")
+      );
+    }
+  }
+
   var handler = "runScheduledRentChargeGeneration";
   var triggers = ScriptApp.getProjectTriggers();
   var matches = triggers.filter(function (trigger) {

@@ -92,8 +92,9 @@ Nunca probar funciones destructivas contra PROD.
 ## 6. Secretos
 
 V1:
-- Apps Script Properties para configuración sensible compatible;
-- credenciales fuera de Sheets;
+- Apps Script Properties solo para secretos técnicos compatibles con el runtime y nunca para contraseñas de inmuebles;
+- contraseñas, PINs, códigos de puerta, códigos Wi-Fi y tokens de acceso fuera de Sheets;
+- `AccessProfiles` guarda únicamente referencias a un gestor de contraseñas, no el secreto;
 - archivos locales privados incluidos en .gitignore.
 
 Futuro:
@@ -126,3 +127,19 @@ Thumbs.db
 El sistema público debe poder arrancar con un dataset ficticio completo.
 
 Nunca anonimizar parcialmente una copia real si existe riesgo de reidentificación; preferir generar datos sintéticos desde cero.
+
+
+## 9. Accesos de inmuebles
+
+Los accesos físicos y digitales del portafolio se consideran secretos cuando permiten entrar a una propiedad o autenticarse en un servicio.
+
+Ejemplos:
+
+- contraseña Wi-Fi;
+- PIN de cerradura;
+- código de portón;
+- código de lockbox;
+- contraseña de portal de condominio;
+- token de alarma.
+
+Real Estate OS no debe guardar esos valores en Google Sheets, GitHub, notas de auditoría ni campos libres. La tabla `AccessProfiles` solo conserva una referencia al elemento almacenado en una bóveda externa controlada por la familia.
