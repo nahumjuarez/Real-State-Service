@@ -86,6 +86,10 @@
     });
     $("workProperty").addEventListener("change", function () {
       renderUnitSelect_("workUnit", $("workProperty").value, false);
+    renderUnitSelect_("capexUnit", $("capexProperty").value, false);
+    });
+    $("capexProperty").addEventListener("change", function () {
+      renderUnitSelect_("capexUnit", $("capexProperty").value, false);
     });
   }
 
@@ -182,6 +186,35 @@
           $("workCategory").value = "";
           $("workDescription").value = "";
           $("workEstimatedCost").value = "";
+          return loadState_(false);
+        });
+    });
+
+
+    $("capexForm").addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = {
+        propertyId: $("capexProperty").value,
+        unitId: $("capexUnit").value,
+        projectName: $("capexProject").value,
+        budget: $("capexBudget").value,
+        actualCost: $("capexActual").value,
+        startDate: $("capexStart").value,
+        completionDate: $("capexEnd").value,
+        expectedUsefulLife: $("capexLife").value,
+        notes: $("capexNotes").value
+      };
+
+      runAction_("Registrando CapEx…", "capex", payload)
+        .then(function () {
+          showToast_("CapEx registrado.");
+          $("capexProject").value = "";
+          $("capexBudget").value = "";
+          $("capexActual").value = "";
+          $("capexStart").value = "";
+          $("capexEnd").value = "";
+          $("capexLife").value = "";
+          $("capexNotes").value = "";
           return loadState_(false);
         });
     });
@@ -303,8 +336,10 @@
 
     renderSummary_();
     renderCharges_();
+    renderRecentPayments_();
     renderLeases_();
     renderExpenses_();
+    renderCapEx_();
     renderWorkOrders_();
     renderSelects_();
     updatePaymentChargeInfo_();
@@ -393,19 +428,153 @@
   function renderLeases_() {
     $("leasesTable").innerHTML = state.activeLeases.length
       ? table_(
-          ["Unidad", "Inquilino", "Renta", "Inicio", "Fin", "Estado"],
+          ["Unidad", "Inquilino", "Renta", "Fin", "Depósito", "Estado", ""],
           state.activeLeases.map(function (lease) {
+            var deposit = lease.deposit;
+            var depositText = deposit
+              ? money_(deposit.amountHeld) + " · " + deposit.status
+              : "Sin depósito";
+            var actions =
+              '<button class="button small secondary js-close-lease" data-lease="' +
+              escapeAttr_(lease.leaseId) + '">Cerrar</button>';
+            if (deposit && deposit.amountHeld > 0) {
+              actions += ' <button class="button small secondary js-settle-deposit" data-lease="' +
+                escapeAttr_(lease.leaseId) + '">Liquidar depósito</button>';
+            }
+
             return [
               dual_(lease.propertyName, lease.unitName),
               escape_(lease.tenantName || "—"),
               money_(lease.baseRent),
-              escape_(lease.startDate),
               escape_(lease.endDate),
-              badge_(lease.status)
+              escape_(depositText),
+              badge_(lease.status),
+              actions
             ];
           })
         )
       : empty_("No hay contratos activos.");
+
+    document.querySelectorAll(".js-close-lease").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var lease = state.activeLeases.find(function (item) {
+          return item.leaseId === button.dataset.lease;
+        });
+        if (!lease) return;
+
+        var type = window.prompt(
+          "Cerrar contrato " + lease.propertyName + " · " + lease.unitName +
+          "\n\nEscribe END para vencimiento natural o TERMINATE para terminación anticipada:",
+          "END"
+        );
+        if (!type) return;
+
+        var normalized = type.trim().toUpperCase();
+        var status = normalized === "TERMINATE" || normalized === "TERMINATED"
+          ? "TERMINATED"
+          : normalized === "END" || normalized === "ENDED"
+            ? "ENDED"
+            : "";
+
+        if (!status) {
+          showToast_("Usa END o TERMINATE.", true);
+          return;
+        }
+
+        var effectiveDate = window.prompt("Fecha efectiva (YYYY-MM-DD):", today_());
+        if (!effectiveDate) return;
+        var reason = window.prompt("Motivo / nota de cierre:", "") || "";
+
+        if (!window.confirm("¿Confirmar cierre del contrato? La unidad podrá quedar VACANT.")) return;
+
+        runAction_("Cerrando contrato…", "closeLease", {
+          leaseId: lease.leaseId,
+          status: status,
+          effectiveDate: effectiveDate,
+          reason: reason
+        }).then(function () {
+          showToast_("Contrato cerrado.");
+          return loadState_(false);
+        });
+      });
+    });
+
+    document.querySelectorAll(".js-settle-deposit").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var lease = state.activeLeases.find(function (item) {
+          return item.leaseId === button.dataset.lease;
+        });
+        if (!lease || !lease.deposit) return;
+
+        var returned = window.prompt(
+          "Monto a devolver. Retenido actualmente: " + money_(lease.deposit.amountHeld),
+          String(lease.deposit.amountHeld)
+        );
+        if (returned === null) return;
+
+        var deductions = window.prompt("Deducciones a aplicar:", "0");
+        if (deductions === null) return;
+
+        var reason = window.prompt("Motivo / detalle:", "") || "";
+
+        runAction_("Liquidando depósito…", "settleDeposit", {
+          depositId: lease.deposit.depositId,
+          returnAmount: returned,
+          deductions: deductions,
+          returnDate: today_(),
+          reason: reason
+        }).then(function () {
+          showToast_("Depósito actualizado.");
+          return loadState_(false);
+        });
+      });
+    });
+  }
+
+  function renderRecentPayments_() {
+    $("paymentsTable").innerHTML = state.recentPayments.length
+      ? table_(
+          ["Fecha", "Unidad", "Pagador", "Monto", "Método", "Estado", ""],
+          state.recentPayments.map(function (payment) {
+            return [
+              escape_(payment.dateReceived),
+              dual_(payment.propertyName, payment.unitName),
+              escape_(payment.payerName || "—"),
+              money_(payment.amount),
+              escape_(payment.method),
+              badge_(payment.status),
+              payment.status === "RECEIVED"
+                ? '<button class="button small secondary js-reverse-payment" data-payment="' +
+                    escapeAttr_(payment.paymentId) + '">Revertir</button>'
+                : ""
+            ];
+          })
+        )
+      : empty_("No hay pagos recientes.");
+
+    document.querySelectorAll(".js-reverse-payment").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var payment = state.recentPayments.find(function (item) {
+          return item.paymentId === button.dataset.payment;
+        });
+        if (!payment) return;
+
+        var reason = window.prompt(
+          "Motivo de reversa para " + money_(payment.amount) + ":",
+          ""
+        );
+        if (!reason) return;
+        if (!window.confirm("La reversa reabrirá el saldo de los cargos afectados. ¿Continuar?")) return;
+
+        runAction_("Revirtiendo pago…", "reversePayment", {
+          paymentId: payment.paymentId,
+          reason: reason
+        }).then(function () {
+          showToast_("Pago revertido y saldos reconciliados.");
+          return loadState_(false);
+        });
+      });
+    });
   }
 
   function renderExpenses_() {
@@ -425,21 +594,84 @@
       : empty_("No hay gastos registrados.");
   }
 
+  function renderCapEx_() {
+    $("capexTable").innerHTML = state.recentCapEx.length
+      ? table_(
+          ["Propiedad / unidad", "Proyecto", "Presupuesto", "Costo real", "Inicio", "Fin"],
+          state.recentCapEx.map(function (item) {
+            return [
+              dual_(item.propertyName, item.unitName),
+              escape_(item.projectName),
+              item.budget === null ? "—" : money_(item.budget),
+              item.actualCost === null ? "—" : money_(item.actualCost),
+              escape_(item.startDate || "—"),
+              escape_(item.completionDate || "—")
+            ];
+          })
+        )
+      : empty_("No hay CapEx registrado.");
+  }
+
   function renderWorkOrders_() {
     $("workOrdersTable").innerHTML = state.openWorkOrders.length
       ? table_(
-          ["Propiedad / unidad", "Categoría", "Descripción", "Prioridad", "Estado"],
+          ["Propiedad / unidad", "Categoría", "Descripción", "Prioridad", "Estado", ""],
           state.openWorkOrders.map(function (workOrder) {
             return [
               dual_(workOrder.propertyName, workOrder.unitName),
               escape_(workOrder.category),
               escape_(workOrder.description),
               badge_(workOrder.priority),
-              badge_(workOrder.status)
+              badge_(workOrder.status),
+              workOrder.nextStatuses.length
+                ? '<button class="button small secondary js-transition-work" data-work="' +
+                    escapeAttr_(workOrder.workOrderId) + '">Avanzar</button>'
+                : ""
             ];
           })
         )
       : empty_("No hay mantenimiento abierto.");
+
+    document.querySelectorAll(".js-transition-work").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var work = state.openWorkOrders.find(function (item) {
+          return item.workOrderId === button.dataset.work;
+        });
+        if (!work) return;
+
+        var options = work.nextStatuses.map(function (status, index) {
+          return (index + 1) + ") " + status;
+        }).join("\n");
+
+        var choice = window.prompt("Siguiente estado:\n\n" + options, "1");
+        if (!choice) return;
+        var idx = Number(choice) - 1;
+        if (!Number.isInteger(idx) || idx < 0 || idx >= work.nextStatuses.length) {
+          showToast_("Selección de estado inválida.", true);
+          return;
+        }
+
+        var nextStatus = work.nextStatuses[idx];
+        var actualCost = "";
+        if (nextStatus === "COMPLETED") {
+          actualCost = window.prompt(
+            "Costo real del mantenimiento:",
+            work.estimatedCost === null ? "" : String(work.estimatedCost)
+          );
+          if (actualCost === null) return;
+        }
+
+        runAction_("Actualizando mantenimiento…", "transitionWork", {
+          workOrderId: work.workOrderId,
+          nextStatus: nextStatus,
+          actualCost: actualCost,
+          completedAt: today_()
+        }).then(function () {
+          showToast_("Orden actualizada a " + nextStatus + ".");
+          return loadState_(false);
+        });
+      });
+    });
   }
 
   function renderSelects_() {
@@ -492,6 +724,14 @@
 
     fillSelect_(
       "workProperty",
+      state.properties.map(function (property) {
+        return { value: property.propertyId, label: property.name };
+      }),
+      "Selecciona propiedad"
+    );
+
+    fillSelect_(
+      "capexProperty",
       state.properties.map(function (property) {
         return { value: property.propertyId, label: property.name };
       }),
@@ -741,6 +981,12 @@
       if (method === "party") return runner.createPartyFromOperatorUi(payload);
       if (method === "property") return runner.createPropertyFromOperatorUi(payload);
       if (method === "unit") return runner.createUnitFromOperatorUi(payload);
+      if (method === "closeLease") return runner.closeLeaseFromOperatorUi(payload);
+      if (method === "settleDeposit") return runner.settleDepositFromOperatorUi(payload);
+      if (method === "reversePayment") return runner.reversePaymentFromOperatorUi(payload);
+      if (method === "transitionWork") return runner.transitionWorkOrderFromOperatorUi(payload);
+      if (method === "capex") return runner.createCapExFromOperatorUi(payload);
+      if (method === "ensureTriggers") return runner.ensureOperationalTriggersFromUi();
 
       reject(new Error("Unknown client method: " + method));
     });
