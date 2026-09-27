@@ -11,7 +11,7 @@
     bindToolbar_();
     bindForms_();
     bindDependentSelects_();
-    loadState_();
+    checkBridgeThenLoad_();
   });
 
   function currentMonth_() {
@@ -255,6 +255,28 @@
       updatePaymentChargeInfo_();
     });
     $("paymentCharge").addEventListener("change", updatePaymentChargeInfo_);
+  }
+
+  function checkBridgeThenLoad_() {
+    setLoading_(true, "Comprobando conexión con Apps Script…");
+    $("instanceMeta").textContent = "Comprobando conexión con Apps Script…";
+    $("bridgeAlert").classList.add("hidden");
+    $("bridgeAlert").textContent = "";
+
+    return server_("ping")
+      .then(function () {
+        $("instanceMeta").textContent = "Conexión con Apps Script OK · cargando datos…";
+        return loadState_(false);
+      })
+      .catch(function (error) {
+        setLoading_(false);
+        var message = error && error.message ? error.message : String(error);
+        $("instanceMeta").textContent = "Sin conexión con Apps Script";
+        $("bridgeAlert").textContent = message;
+        $("bridgeAlert").classList.remove("hidden");
+        showToast_(message, true);
+        throw error;
+      });
   }
 
   function loadState_(showLoader) {
@@ -709,6 +731,7 @@
           reject(new Error(friendlyServerError_(message)));
         });
 
+      if (method === "ping") return runner.pingOperatorUiBridge();
       if (method === "state") return runner.getOperatorUiState(payload);
       if (method === "generateCharges") return runner.generateChargesFromOperatorUi(payload);
       if (method === "payment") return runner.registerPaymentFromOperatorUi(payload);
@@ -726,14 +749,12 @@
   function friendlyServerError_(message) {
     var text = String(message || "");
 
-    if (
-      text.indexOf("PERMISSION_DENIED") !== -1 &&
-      text.toLowerCase().indexOf("storage") !== -1
-    ) {
-      return "Google bloqueó la llamada de Apps Script por la sesión del navegador. " +
-        "Este error suele aparecer cuando hay varias cuentas de Google abiertas y " +
-        "la cuenta que tiene acceso al Sheet no es la cuenta principal. Abre el Sheet " +
-        "con esa cuenta como principal o prueba una ventana de incógnito con una sola cuenta.";
+    if (text.indexOf("PERMISSION_DENIED") !== -1) {
+      return "El puente entre esta ventana y Apps Script fue bloqueado por Google (PERMISSION_DENIED). " +
+        "Esto ocurre antes de que Real Estate OS lea las hojas. Google no soporta correctamente " +
+        "Apps Script con varias cuentas iniciadas al mismo tiempo. Cierra las demás sesiones o abre " +
+        "una ventana de incógnito e inicia sesión únicamente con la cuenta que tiene acceso a este Sheet. " +
+        "Después vuelve a abrir el panel.";
     }
 
     return text;
