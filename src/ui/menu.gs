@@ -13,6 +13,7 @@ function onOpen() {
     .addItem("Cargar datos demo (DEV)", "seedDemoData")
     .addItem("Smoke test Bootstrap", "runDemoSmokeTest")
     .addItem("Smoke test Core Operations", "runCoreOperationsSmokeTest")
+    .addItem("Smoke test Operator UI", "runOperatorUiSmokeTest")
     .addItem("Ejecutar diagnóstico", "runSystemDiagnostics");
 
   ui.createMenu(REOS_APP.NAME)
