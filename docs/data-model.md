@@ -33,6 +33,8 @@ PARTY ──< OWNERSHIP >── PROPERTY ──< UNIT ──< LEASE
 PROPERTY ──< LOAN
 PROPERTY ──< VALUATION
 PROPERTY ──< DOCUMENT
+PROPERTY ──< ACCESS_PROFILE
+UNIT ──< ACCESS_PROFILE
 
 DEAL ──< DEAL_ASSUMPTION
 DEAL ──< SCENARIO
@@ -80,6 +82,27 @@ GEOGRAPHY ──< MARKET_OBSERVATION >── DATASET_SOURCE
 | area_m2 | NUMBER | > 0 cuando exista |
 | rentable_area_m2 | NUMBER | > 0 cuando exista |
 | status | ENUM | VACANT, OCCUPIED, OFF_MARKET |
+
+### AccessProfiles
+
+Metadatos y referencias no secretas para accesos físicos y digitales. No es una bóveda.
+
+| Campo | Tipo | Regla |
+|---|---|---|
+| access_profile_id | STRING PK | obligatorio |
+| property_id | STRING FK | Properties |
+| unit_id | STRING FK nullable | Units |
+| access_type | ENUM | entrada, Wi-Fi, alarma, lockbox, portal, dispositivo u otro |
+| label | STRING | obligatorio |
+| login_identifier | STRING | usuario o identificador no secreto |
+| vault_provider | ENUM | GOOGLE_PASSWORD_MANAGER, 1PASSWORD, BITWARDEN, OTHER |
+| vault_item_reference | STRING | URL o identificador del elemento externo |
+| instructions | STRING | solo instrucciones no secretas |
+| status | ENUM | ACTIVE, INACTIVE |
+| created_at | DATETIME | sistema |
+| updated_at | DATETIME | sistema |
+
+Nunca almacenar aquí passwords, PINs, códigos de puerta, códigos Wi-Fi, tokens o secretos equivalentes.
 
 ### Parties
 
@@ -421,6 +444,7 @@ WO-000001
 INV-202609-000001
 DEAL-000001
 DOC-000001
+ACCESS-000001
 ```
 
 Los IDs no deben depender de números de fila.
