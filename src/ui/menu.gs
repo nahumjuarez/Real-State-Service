@@ -17,6 +17,8 @@ function onOpen() {
 
   var administrationMenu = ui
     .createMenu("Administración")
+    .addItem("Onboarding del portafolio", "openOnboardingPanel")
+    .addSeparator()
     .addItem("Production Readiness", "showProductionReadinessFromMenu")
     .addItem("Ejecutar diagnóstico", "runSystemDiagnostics");
 
@@ -30,6 +32,7 @@ function onOpen() {
   var rootMenu = ui
     .createMenu(REOS_APP.NAME)
     .addItem("Abrir panel operativo", "openOperatorPanel")
+    .addItem("Onboarding del portafolio", "openOnboardingPanel")
     .addSeparator()
     .addItem("Inicializar / sincronizar sistema", "setupRealEstateOS")
     .addSubMenu(operationsMenu)
@@ -42,7 +45,8 @@ function onOpen() {
       .addItem("Smoke test Bootstrap", "runDemoSmokeTest")
       .addItem("Smoke test Core Operations", "runCoreOperationsSmokeTest")
       .addItem("Smoke test Operator UI", "runOperatorUiSmokeTest")
-      .addItem("Smoke test Full Operations", "runFullOperationsSmokeTest");
+      .addItem("Smoke test Full Operations", "runFullOperationsSmokeTest")
+      .addItem("Smoke test Onboarding", "runOnboardingSmokeTest");
 
     rootMenu.addSubMenu(developmentMenu);
   }
