@@ -250,6 +250,10 @@
         });
     });
 
+    $("paymentUnit").addEventListener("change", function () {
+      renderPaymentChargeSelect_();
+      updatePaymentChargeInfo_();
+    });
     $("paymentCharge").addEventListener("change", updatePaymentChargeInfo_);
   }
 
@@ -320,7 +324,12 @@
     document.querySelectorAll(".js-pay").forEach(function (button) {
       button.addEventListener("click", function () {
         activateTab_("payments");
-        $("paymentCharge").value = button.dataset.charge;
+        var charge = findCharge_(button.dataset.charge);
+        if (charge) {
+          $("paymentUnit").value = charge.unitId;
+          renderPaymentChargeSelect_();
+          $("paymentCharge").value = charge.chargeId;
+        }
         updatePaymentChargeInfo_();
         $("paymentAmount").focus();
       });
@@ -412,17 +421,36 @@
   }
 
   function renderSelects_() {
+    var paymentUnits = [];
+    var seenPaymentUnits = {};
+
+    state.activeLeases.forEach(function (lease) {
+      if (seenPaymentUnits[lease.unitId]) return;
+      seenPaymentUnits[lease.unitId] = true;
+      paymentUnits.push({
+        value: lease.unitId,
+        label: (lease.propertyName || "") + " · " + (lease.unitName || "") +
+          (lease.tenantName ? " · " + lease.tenantName : "")
+      });
+    });
+
+    state.outstandingCharges.forEach(function (charge) {
+      if (!charge.unitId || seenPaymentUnits[charge.unitId]) return;
+      seenPaymentUnits[charge.unitId] = true;
+      paymentUnits.push({
+        value: charge.unitId,
+        label: (charge.propertyName || "") + " · " + (charge.unitName || "") +
+          (charge.tenantName ? " · " + charge.tenantName : "")
+      });
+    });
+
     fillSelect_(
-      "paymentCharge",
-      state.pendingCharges.map(function (charge) {
-        return {
-          value: charge.chargeId,
-          label: (charge.propertyName || "") + " · " + (charge.unitName || "") +
-            " · " + charge.period + " · " + money_(charge.outstandingAmount)
-        };
-      }),
-      "Selecciona un cargo"
+      "paymentUnit",
+      paymentUnits,
+      "Selecciona departamento / unidad"
     );
+
+    renderPaymentChargeSelect_();
 
     fillSelect_(
       "leaseProperty",
@@ -541,8 +569,12 @@
     var box = $("paymentChargeInfo");
 
     if (!charge) {
-      box.innerHTML = "";
-      box.classList.remove("has-value");
+      var unitId = $("paymentUnit").value;
+      box.classList.toggle("has-value", !!unitId);
+      box.innerHTML = unitId
+        ? '<div class="strong">Sin cargos pendientes para esta unidad.</div>' +
+          '<div class="subtext">Si corresponde cobrar este periodo, usa "Generar cargos" y actualiza el panel.</div>'
+        : "";
       $("paymentAmount").value = "";
       return;
     }
@@ -558,8 +590,31 @@
     $("paymentAmount").value = charge.outstandingAmount.toFixed(2);
   }
 
+  function renderPaymentChargeSelect_() {
+    if (!state) return;
+
+    var unitId = $("paymentUnit").value;
+    var charges = state.outstandingCharges.filter(function (charge) {
+      return !unitId || charge.unitId === unitId;
+    });
+
+    fillSelect_(
+      "paymentCharge",
+      charges.map(function (charge) {
+        return {
+          value: charge.chargeId,
+          label: charge.period + " · pendiente " + money_(charge.outstandingAmount) +
+            " · " + charge.status
+        };
+      }),
+      unitId
+        ? (charges.length ? "Selecciona cargo pendiente" : "Sin cargos pendientes")
+        : "Selecciona primero una unidad"
+    );
+  }
+
   function findCharge_(chargeId) {
-    return (state && state.pendingCharges || []).find(function (charge) {
+    return (state && state.outstandingCharges || []).find(function (charge) {
       return charge.chargeId === chargeId;
     }) || null;
   }
@@ -650,7 +705,8 @@
       var runner = google.script.run
         .withSuccessHandler(resolve)
         .withFailureHandler(function (error) {
-          reject(new Error(error && error.message ? error.message : String(error)));
+          var message = error && error.message ? error.message : String(error);
+          reject(new Error(friendlyServerError_(message)));
         });
 
       if (method === "state") return runner.getOperatorUiState(payload);
@@ -665,6 +721,22 @@
 
       reject(new Error("Unknown client method: " + method));
     });
+  }
+
+  function friendlyServerError_(message) {
+    var text = String(message || "");
+
+    if (
+      text.indexOf("PERMISSION_DENIED") !== -1 &&
+      text.toLowerCase().indexOf("storage") !== -1
+    ) {
+      return "Google bloqueó la llamada de Apps Script por la sesión del navegador. " +
+        "Este error suele aparecer cuando hay varias cuentas de Google abiertas y " +
+        "la cuenta que tiene acceso al Sheet no es la cuenta principal. Abre el Sheet " +
+        "con esa cuenta como principal o prueba una ventana de incógnito con una sola cuenta.";
+    }
+
+    return text;
   }
 
   function setLoading_(visible, text) {
