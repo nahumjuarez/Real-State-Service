@@ -12,7 +12,7 @@
         <div>
           <div class="eyebrow">REAL ESTATE OS</div>
           <h1>Panel operativo</h1>
-          <div id="instanceMeta" class="muted">Cargando instancia…</div>
+          <div id="instanceMeta" class="muted">Comprobando conexión con Apps Script…</div>
         </div>
         <div class="period-controls">
           <input id="periodInput" type="month" aria-label="Periodo">
@@ -29,6 +29,8 @@
         <button class="tab" data-tab="maintenance" type="button">Mantenimiento</button>
         <button class="tab" data-tab="catalog" type="button">Datos base</button>
       </nav>
+
+      <div id="bridgeAlert" class="bridge-alert hidden"></div>
 
       <main>
         <section id="tab-summary" class="tab-panel active">
