@@ -26,6 +26,7 @@ function runProductionReadinessCheck(options) {
   var operationalTables = [
     "Properties",
     "Units",
+    "AccessProfiles",
     "Parties",
     "FiscalProfiles",
     "Ownership",
