@@ -71,14 +71,17 @@ Orden:
 
 **Definition of Done:**
 
-- registrar propiedades;
-- registrar contrato;
-- generar cargo mensual;
-- registrar pago parcial/completo;
-- ver saldo;
-- registrar gasto;
-- registrar mantenimiento;
-- auditar cambios.
+- [x] registrar propiedades;
+- [x] registrar contrato;
+- [x] generar cargo mensual;
+- [x] registrar pago parcial/completo;
+- [x] ver saldo;
+- [x] registrar gasto;
+- [x] registrar mantenimiento;
+- [x] auditar cambios;
+- [ ] prueba integrada en Google Sheet DEV.
+
+**Estado de implementación:** backend completo en `feat/core-operations-v1`; pendiente ejecutar el smoke test integrado en Apps Script.
 
 **Salida:** Real Estate OS v0.1 operativo.
 
