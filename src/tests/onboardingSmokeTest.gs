@@ -155,6 +155,70 @@ function runOnboardingSmokeTest() {
     "Access profile must never expose a password field."
   );
 
+  var updatedOwner = updateParty({
+    partyId: owner.party_id,
+    partyType: "PERSON",
+    legalName: owner.legal_name,
+    preferredName: "Owner edited " + token,
+    email: "owner-edited-" + token.toLowerCase() + "@example.test",
+    phone: "0000000000",
+    status: "ACTIVE"
+  });
+  check(
+    updatedOwner.preferred_name === "Owner edited " + token,
+    "Party edits must persist."
+  );
+
+  var updatedProperty = updateProperty({
+    propertyId: propertyBundle.property.property_id,
+    propertyName: "Onboarding Property Edited " + token,
+    propertyType: "APARTMENT",
+    municipality: "Demo",
+    state: "Puebla",
+    country: "MX",
+    predialAccount: "PRED-" + token,
+    status: "ACTIVE"
+  });
+  check(
+    updatedProperty.predial_account === "PRED-" + token,
+    "Property edits must persist."
+  );
+
+  var updatedUnit = updateUnit({
+    unitId: unit.unit_id,
+    unitName: "Depto Edited " + token,
+    unitType: "APARTMENT",
+    floor: "2",
+    bedrooms: 2,
+    bathrooms: 1.5,
+    parkingSpaces: 1,
+    areaM2: 76,
+    rentableAreaM2: 75,
+    status: "OCCUPIED"
+  });
+  check(
+    Number(updatedUnit.area_m2) === 76,
+    "Unit edits must persist."
+  );
+
+  var updatedAccess = updateAccessProfile({
+    accessProfileId: access.access_profile_id,
+    propertyId: propertyBundle.property.property_id,
+    unitId: unit.unit_id,
+    accessType: "WIFI",
+    label: "Wi-Fi synthetic edited " + token,
+    loginIdentifier: "wifi-edited-" + token,
+    vaultProvider: "GOOGLE_PASSWORD_MANAGER",
+    vaultItemReference: "vault://synthetic/edited/" + token,
+    instructions: "Edited synthetic non-secret reference.",
+    status: "ACTIVE"
+  });
+  check(
+    updatedAccess.vault_item_reference ===
+      "vault://synthetic/edited/" + token,
+    "Access reference edits must persist."
+  );
+
   var secretRejected = false;
   try {
     createAccessProfile({
@@ -200,8 +264,10 @@ function runOnboardingSmokeTest() {
     "Snapshot must expose the lease deposit."
   );
   check(
-    accessRow && accessRow.vaultItemReference === "vault://synthetic/" + token,
-    "Snapshot must expose the external vault reference."
+    accessRow &&
+      accessRow.vaultItemReference ===
+        "vault://synthetic/edited/" + token,
+    "Snapshot must expose the edited external vault reference."
   );
 
   var result = {
