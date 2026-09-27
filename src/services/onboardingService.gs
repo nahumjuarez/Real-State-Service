@@ -330,6 +330,41 @@ function getOnboardingSnapshot() {
 
 function createPropertyOnboardingBundle(input) {
   var data = input || {};
+  var propertyInput = data.property || data;
+  var ownershipInput = null;
+
+  if (data.ownerPartyId) {
+    var owner = assertRecordExists_(
+      "Parties",
+      data.ownerPartyId,
+      "Owner party"
+    );
+    var percentage = requirePositiveNumber_(
+      data.ownershipPercentage === undefined || data.ownershipPercentage === ""
+        ? 1
+        : data.ownershipPercentage,
+      "Ownership percentage",
+      false
+    );
+
+    if (percentage > 1) {
+      throw new Error(
+        "Ownership percentage must be expressed between 0 and 1."
+      );
+    }
+
+    ownershipInput = {
+      partyId: owner.party_id,
+      ownershipPercentage: percentage,
+      startDate: requireValidDate_(
+        data.ownershipStartDate ||
+          propertyInput.acquisitionDate ||
+          new Date(),
+        "Ownership start date"
+      )
+    };
+  }
+
   var lock = LockService.getDocumentLock();
 
   if (!lock.tryLock(30000)) {
@@ -337,15 +372,15 @@ function createPropertyOnboardingBundle(input) {
   }
 
   try {
-    var property = createProperty(data.property || data);
+    var property = createProperty(propertyInput);
     var ownership = null;
 
-    if (data.ownerPartyId) {
+    if (ownershipInput) {
       ownership = createOwnership({
-        partyId: data.ownerPartyId,
+        partyId: ownershipInput.partyId,
         propertyId: property.property_id,
-        ownershipPercentage: Number(data.ownershipPercentage || 1),
-        startDate: data.ownershipStartDate || data.acquisitionDate || new Date()
+        ownershipPercentage: ownershipInput.ownershipPercentage,
+        startDate: ownershipInput.startDate
       });
     }
 
