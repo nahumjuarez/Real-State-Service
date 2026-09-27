@@ -131,10 +131,27 @@ function createOnboardingUnitFromUi(payload) {
 
 function createOnboardingLeaseFromUi(payload) {
   var data = payload || {};
+  var additionalParties = [];
+
+  if (data.coTenantPartyId) {
+    additionalParties.push({
+      partyId: data.coTenantPartyId,
+      role: "CO_TENANT"
+    });
+  }
+
+  if (data.guarantorPartyId) {
+    additionalParties.push({
+      partyId: data.guarantorPartyId,
+      role: "GUARANTOR"
+    });
+  }
+
   return serializeUiValue_(
     createLeaseOnboardingBundle({
       unitId: data.unitId,
       tenantPartyId: data.tenantPartyId,
+      additionalParties: additionalParties,
       startDate: data.startDate,
       endDate: data.endDate,
       baseRent: Number(data.baseRent),
