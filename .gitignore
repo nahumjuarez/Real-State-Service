@@ -4,6 +4,9 @@ node_modules/
 # Google Apps Script / clasp
 .clasprc.json
 .clasp.json
+.clasp.dev.json
+.clasp.prod.json
+.clasp.*.local.json
 
 # Environment / secrets
 .env
