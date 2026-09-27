@@ -208,3 +208,93 @@ function assertOwnershipCapacity_(
     return false;
   });
 }
+
+
+function updateProperty(input) {
+  var data = input || {};
+  var current = assertRecordExists_("Properties", data.propertyId, "Property");
+
+  var updated = updateRecordById_("Properties", current.property_id, {
+    property_name: String(
+      requireNonEmpty_(
+        data.propertyName === undefined ? current.property_name : data.propertyName,
+        "Property name"
+      )
+    ).trim(),
+    property_type: requireEnumValue_(
+      data.propertyType === undefined ? current.property_type : data.propertyType,
+      REOS_ENUMS.propertyType,
+      "Property type"
+    ),
+    street:
+      data.street === undefined ? current.street : normalizeOptionalString_(data.street),
+    neighborhood:
+      data.neighborhood === undefined
+        ? current.neighborhood
+        : normalizeOptionalString_(data.neighborhood),
+    municipality: String(
+      requireNonEmpty_(
+        data.municipality === undefined ? current.municipality : data.municipality,
+        "Municipality"
+      )
+    ).trim(),
+    state: String(
+      requireNonEmpty_(
+        data.state === undefined ? current.state : data.state,
+        "State"
+      )
+    ).trim(),
+    postal_code:
+      data.postalCode === undefined
+        ? current.postal_code
+        : normalizeOptionalString_(data.postalCode),
+    country:
+      data.country === undefined
+        ? current.country
+        : normalizeOptionalString_(data.country) || "MX",
+    latitude:
+      data.latitude === undefined
+        ? current.latitude
+        : data.latitude === "" ? "" : Number(data.latitude),
+    longitude:
+      data.longitude === undefined
+        ? current.longitude
+        : data.longitude === "" ? "" : Number(data.longitude),
+    acquisition_date:
+      data.acquisitionDate === undefined
+        ? current.acquisition_date
+        : data.acquisitionDate
+          ? requireValidDate_(data.acquisitionDate, "Acquisition date")
+          : "",
+    acquisition_price:
+      data.acquisitionPrice === undefined
+        ? current.acquisition_price
+        : data.acquisitionPrice === ""
+          ? ""
+          : requirePositiveNumber_(
+              data.acquisitionPrice,
+              "Acquisition price",
+              true
+            ),
+    predial_account:
+      data.predialAccount === undefined
+        ? current.predial_account
+        : normalizeOptionalString_(data.predialAccount),
+    status: requireEnumValue_(
+      data.status === undefined ? current.status : data.status,
+      REOS_ENUMS.propertyStatus,
+      "Property status"
+    ),
+    updated_at: new Date()
+  });
+
+  appendAuditEvent_({
+    action: "PROPERTY_UPDATED",
+    entityType: "PROPERTY",
+    entityId: current.property_id,
+    previousValue: current,
+    newValue: updated
+  });
+
+  return updated;
+}
