@@ -375,6 +375,14 @@ function createLeaseOnboardingBundle(input) {
           true
         );
 
+  var depositDate = null;
+  if (amountReceived > 0) {
+    depositDate = requireValidDate_(
+      data.depositDateReceived || data.startDate || new Date(),
+      "Deposit date"
+    );
+  }
+
   var lease = createLease({
     unitId: data.unitId,
     startDate: data.startDate,
@@ -393,7 +401,7 @@ function createLeaseOnboardingBundle(input) {
     deposit = recordSecurityDeposit({
       leaseId: lease.lease_id,
       amountReceived: amountReceived,
-      dateReceived: data.depositDateReceived || data.startDate || new Date()
+      dateReceived: depositDate
     });
   }
 
