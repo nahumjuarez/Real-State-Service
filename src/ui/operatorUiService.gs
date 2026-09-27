@@ -13,12 +13,26 @@ function includeOperatorFile_(filename) {
 }
 
 function pingOperatorUiBridge() {
-  return {
+  var result = {
     ok: true,
     message: "pong",
     timestamp: new Date().toISOString(),
     actor: currentActor_()
   };
+
+  console.log(JSON.stringify(result));
+
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      "Operator UI bridge: pong",
+      REOS_APP.NAME,
+      5
+    );
+  } catch (error) {
+    console.log("Toast unavailable: " + error.message);
+  }
+
+  return result;
 }
 
 function getOperatorUiState(period) {
