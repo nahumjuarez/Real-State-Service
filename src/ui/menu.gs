@@ -9,7 +9,10 @@ function onOpen() {
     .addItem("Resumen de cobranza (modo nativo)", "showNativeReceivablesSummary")
     .addSeparator()
     .addItem("Generar cargos del mes actual", "generateCurrentPeriodRentChargesFromMenu")
-    .addItem("Ver resumen del mes actual", "showCurrentPeriodSummaryFromMenu");
+    .addItem("Ver resumen del mes actual", "showCurrentPeriodSummaryFromMenu")
+    .addSeparator()
+    .addItem("Activar automatización mensual", "ensureOperationalTriggersFromMenu")
+    .addItem("Ver estado de automatización", "showOperationalTriggerStatusFromMenu");
 
   var developmentMenu = ui
     .createMenu("Desarrollo")
@@ -17,6 +20,7 @@ function onOpen() {
     .addItem("Smoke test Bootstrap", "runDemoSmokeTest")
     .addItem("Smoke test Core Operations", "runCoreOperationsSmokeTest")
     .addItem("Smoke test Operator UI", "runOperatorUiSmokeTest")
+    .addItem("Smoke test Full Operations", "runFullOperationsSmokeTest")
     .addItem("Ejecutar diagnóstico", "runSystemDiagnostics");
 
   ui.createMenu(REOS_APP.NAME)
