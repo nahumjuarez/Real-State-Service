@@ -12,14 +12,15 @@ La documentación es la fuente de verdad para las decisiones de arquitectura. El
 4. [operator-ui-v1.md](./operator-ui-v1.md) — panel operativo y formularios sobre HtmlService.
 5. [full-operations-v1.md](./full-operations-v1.md) — ciclo de vida completo de contratos, pagos, depósitos, mantenimiento y CapEx.
 6. [production-rollout.md](./production-rollout.md) — creación del entorno PROD y corte operativo.
-7. [data-model.md](./data-model.md) — entidades, relaciones y estructura de datos.
-8. [business-rules.md](./business-rules.md) — reglas que gobiernan contratos, cargos, pagos, gastos y estados.
-9. [security.md](./security.md) — privacidad, secretos, roles y separación público/privado.
-10. [fiscal-flow.md](./fiscal-flow.md) — diseño de la integración CFDI/PAC para México.
-11. [market-data.md](./market-data.md) — fuentes, pipeline e inteligencia de mercado.
-12. [roadmap.md](./roadmap.md) — orden de construcción y definición de hitos.
-13. [references.md](./references.md) — repositorios estudiados y patrones reutilizados.
-14. [adr/README.md](./adr/README.md) — decisiones de arquitectura que deben quedar registradas.
+7. [onboarding-ui-v1.md](./onboarding-ui-v1.md) — carga guiada del portafolio, readiness y referencias seguras de acceso.
+8. [data-model.md](./data-model.md) — entidades, relaciones y estructura de datos.
+9. [business-rules.md](./business-rules.md) — reglas que gobiernan contratos, cargos, pagos, gastos y estados.
+10. [security.md](./security.md) — privacidad, secretos, roles y separación público/privado.
+11. [fiscal-flow.md](./fiscal-flow.md) — diseño de la integración CFDI/PAC para México.
+12. [market-data.md](./market-data.md) — fuentes, pipeline e inteligencia de mercado.
+13. [roadmap.md](./roadmap.md) — orden de construcción y definición de hitos.
+14. [references.md](./references.md) — repositorios estudiados y patrones reutilizados.
+15. [adr/README.md](./adr/README.md) — decisiones de arquitectura que deben quedar registradas.
 
 ## Principio rector
 
