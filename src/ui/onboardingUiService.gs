@@ -1,4 +1,6 @@
 function openOnboardingPanel() {
+  ensureOnboardingSchema_();
+
   var html = HtmlService
     .createTemplateFromFile("OnboardingPanel")
     .evaluate()
@@ -16,7 +18,21 @@ function includeOnboardingFile_(filename) {
 }
 
 function getOnboardingUiState() {
+  ensureOnboardingSchema_();
   return serializeUiValue_(getOnboardingSnapshot());
+}
+
+function ensureOnboardingSchema_() {
+  var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+
+  if (!spreadsheet.getSheetByName("AccessProfiles")) {
+    setupRealEstateOS();
+  }
+
+  var appliedVersion = String(getSetting_("schema_version") || "");
+  if (appliedVersion !== REOS_SCHEMA_VERSION) {
+    setupRealEstateOS();
+  }
 }
 
 function createOnboardingPartyFromUi(payload) {
