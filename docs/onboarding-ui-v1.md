@@ -36,8 +36,9 @@ automatización mensual
 
 La interfaz permite:
 
-- crear personas y organizaciones;
+- crear y corregir personas y organizaciones con auditoría;
 - crear una propiedad con ownership inicial opcional;
+- corregir metadatos de propiedades y unidades sin editar Sheets directamente;
 - agregar ownership adicional;
 - cerrar periodos de ownership sin borrar el histórico;
 - crear unidades con datos físicos básicos;
@@ -46,7 +47,7 @@ La interfaz permite:
 - registrar un depósito pendiente de un contrato ya creado;
 - preparar una renovación como `DRAFT`;
 - activar una renovación `DRAFT`;
-- registrar referencias de acceso sin guardar secretos;
+- registrar y editar referencias de acceso sin guardar secretos;
 - revisar automáticamente bloqueos de onboarding.
 
 ## Reglas de readiness
