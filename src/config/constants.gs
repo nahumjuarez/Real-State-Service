@@ -1,6 +1,6 @@
 var REOS_APP = {
   NAME: "Real Estate OS",
-  VERSION: "0.1.0",
+  VERSION: "0.3.0",
   DEFAULT_ENVIRONMENT: "DEV",
   MIN_DATA_ROWS: 500,
   HEADER_ROW: 1,
