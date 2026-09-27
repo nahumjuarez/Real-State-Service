@@ -12,55 +12,82 @@ function registerPaymentNative() {
     return null;
   }
 
-  var lines = charges.map(function (charge, index) {
-    return [
-      (index + 1) + ")",
-      charge.propertyName || "Propiedad",
-      "·",
-      charge.unitName || "Unidad",
-      "·",
-      charge.tenantName || "Sin inquilino",
-      "·",
-      charge.period,
-      "· pendiente",
-      formatNativeMoney_(charge.outstandingAmount, state.app.currency)
-    ].join(" ");
-  });
+  var charge = null;
 
-  var selection = ui.prompt(
-    "Registrar pago",
-    "Escribe el número del cargo a cobrar:\n\n" + lines.join("\n"),
-    ui.ButtonSet.OK_CANCEL
-  );
+  if (charges.length === 1) {
+    charge = charges[0];
+  } else {
+    var lines = charges.map(function (item, index) {
+      return [
+        (index + 1) + ")",
+        item.propertyName || "Propiedad",
+        "·",
+        item.unitName || "Unidad",
+        "·",
+        item.tenantName || "Sin inquilino",
+        "·",
+        item.period,
+        "· pendiente",
+        formatNativeMoney_(item.outstandingAmount, state.app.currency)
+      ].join(" ");
+    });
 
-  if (selection.getSelectedButton() !== ui.Button.OK) return null;
+    var selection = ui.prompt(
+      "Registrar pago",
+      "Escribe el número del cargo a cobrar:\n\n" + lines.join("\n"),
+      ui.ButtonSet.OK_CANCEL
+    );
 
-  var selectedIndex = Number(selection.getResponseText()) - 1;
-  if (
-    !Number.isInteger(selectedIndex) ||
-    selectedIndex < 0 ||
-    selectedIndex >= charges.length
-  ) {
-    ui.alert("Selección inválida.");
-    return null;
+    if (selection.getSelectedButton() !== ui.Button.OK) return null;
+
+    var selectedIndex = Number(selection.getResponseText()) - 1;
+    if (
+      !Number.isInteger(selectedIndex) ||
+      selectedIndex < 0 ||
+      selectedIndex >= charges.length
+    ) {
+      ui.alert("Selección inválida.");
+      return null;
+    }
+
+    charge = charges[selectedIndex];
   }
 
-  var charge = charges[selectedIndex];
-
-  var amountPrompt = ui.prompt(
-    "Monto recibido",
-    "Saldo pendiente: " +
-      formatNativeMoney_(charge.outstandingAmount, state.app.currency) +
-      "\n\nEscribe el monto recibido:",
-    ui.ButtonSet.OK_CANCEL
+  var fullPaymentChoice = ui.alert(
+    "Registrar pago",
+    [
+      (charge.propertyName || "") + " · " + (charge.unitName || ""),
+      charge.tenantName || "",
+      "Periodo: " + charge.period,
+      "Cargo: " + formatNativeMoney_(charge.currentAmount, state.app.currency),
+      "Pagado: " + formatNativeMoney_(charge.allocatedAmount, state.app.currency),
+      "Pendiente: " + formatNativeMoney_(charge.outstandingAmount, state.app.currency),
+      "",
+      "¿Registrar el saldo pendiente completo?"
+    ].join("\n"),
+    ui.ButtonSet.YES_NO_CANCEL
   );
 
-  if (amountPrompt.getSelectedButton() !== ui.Button.OK) return null;
+  if (fullPaymentChoice === ui.Button.CANCEL) return null;
 
-  var amount = Number(amountPrompt.getResponseText());
-  if (!isFinite(amount) || amount <= 0) {
-    ui.alert("El monto debe ser un número mayor a cero.");
-    return null;
+  var amount = Number(charge.outstandingAmount);
+
+  if (fullPaymentChoice === ui.Button.NO) {
+    var amountPrompt = ui.prompt(
+      "Monto recibido",
+      "Saldo pendiente: " +
+        formatNativeMoney_(charge.outstandingAmount, state.app.currency) +
+        "\n\nEscribe el monto recibido:",
+      ui.ButtonSet.OK_CANCEL
+    );
+
+    if (amountPrompt.getSelectedButton() !== ui.Button.OK) return null;
+
+    amount = Number(amountPrompt.getResponseText());
+    if (!isFinite(amount) || amount <= 0) {
+      ui.alert("El monto debe ser un número mayor a cero.");
+      return null;
+    }
   }
 
   var methods = REOS_ENUMS.paymentMethod;
@@ -89,7 +116,7 @@ function registerPaymentNative() {
 
   var referencePrompt = ui.prompt(
     "Referencia",
-    "Referencia bancaria / folio (opcional):",
+    "Referencia bancaria / folio. Si no existe, deja el campo vacío y presiona Aceptar:",
     ui.ButtonSet.OK_CANCEL
   );
 
