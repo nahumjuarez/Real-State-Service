@@ -47,12 +47,26 @@ function getOperatorUiState(period) {
   var allocations = readAllRecords_("PaymentAllocations");
   var expenses = readAllRecords_("Expenses");
   var workOrders = readAllRecords_("WorkOrders");
+  var deposits = readAllRecords_("SecurityDeposits");
+  var capexRecords = readAllRecords_("CapEx");
 
   var propertyById = indexRecordsBy_("property_id", properties);
   var unitById = indexRecordsBy_("unit_id", units);
   var partyById = indexRecordsBy_("party_id", parties);
   var leaseById = indexRecordsBy_("lease_id", leases);
   var paymentById = indexRecordsBy_("payment_id", payments);
+  var depositByLease = {};
+  deposits.forEach(function (deposit) {
+    depositByLease[String(deposit.lease_id)] = deposit;
+  });
+
+  var allocationsByPayment = {};
+  allocations.forEach(function (allocation) {
+    if (!allocationsByPayment[allocation.payment_id]) {
+      allocationsByPayment[allocation.payment_id] = [];
+    }
+    allocationsByPayment[allocation.payment_id].push(allocation);
+  });
 
   var tenantIdsByLease = {};
   leaseParties.forEach(function (entry) {
@@ -183,7 +197,17 @@ function getOperatorUiState(period) {
         endDate: formatUiDate_(lease.end_date),
         baseRent: Number(lease.base_rent || 0),
         paymentDueDay: Number(lease.payment_due_day || 1),
-        status: String(lease.status)
+        status: String(lease.status),
+        deposit: depositByLease[lease.lease_id]
+          ? {
+              depositId: String(depositByLease[lease.lease_id].deposit_id),
+              amountReceived: Number(depositByLease[lease.lease_id].amount_received || 0),
+              amountHeld: Number(depositByLease[lease.lease_id].amount_held || 0),
+              amountReturned: Number(depositByLease[lease.lease_id].amount_returned || 0),
+              deductions: Number(depositByLease[lease.lease_id].deductions || 0),
+              status: String(depositByLease[lease.lease_id].status || "")
+            }
+          : null
       };
     });
 
@@ -249,7 +273,70 @@ function getOperatorUiState(period) {
         description: String(workOrder.description || ""),
         priority: String(workOrder.priority || ""),
         status: String(workOrder.status || ""),
-        reportedAt: formatUiDateTime_(workOrder.reported_at)
+        reportedAt: formatUiDateTime_(workOrder.reported_at),
+        vendorPartyId: String(workOrder.vendor_party_id || ""),
+        estimatedCost: workOrder.estimated_cost === "" ? null : Number(workOrder.estimated_cost || 0),
+        actualCost: workOrder.actual_cost === "" ? null : Number(workOrder.actual_cost || 0),
+        nextStatuses: (REOS_WORK_ORDER_TRANSITIONS[String(workOrder.status)] || []).slice()
+      };
+    });
+
+  var recentPayments = payments
+    .slice()
+    .sort(function (a, b) {
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    })
+    .slice(0, 12)
+    .map(function (payment) {
+      var paymentAllocations = allocationsByPayment[payment.payment_id] || [];
+      var firstAllocation = paymentAllocations[0] || {};
+      var charge = firstAllocation.charge_id
+        ? charges.filter(function (candidate) {
+            return String(candidate.charge_id) === String(firstAllocation.charge_id);
+          })[0]
+        : null;
+      var lease = charge ? leaseById[charge.lease_id] || {} : {};
+      var unit = unitById[lease.unit_id] || {};
+      var property = propertyById[unit.property_id] || {};
+      var payer = partyById[payment.party_id] || {};
+
+      return {
+        paymentId: String(payment.payment_id),
+        partyId: String(payment.party_id || ""),
+        payerName: String(payer.preferred_name || payer.legal_name || ""),
+        dateReceived: formatUiDate_(payment.date_received),
+        amount: Number(payment.amount || 0),
+        method: String(payment.payment_method || ""),
+        reference: String(payment.reference || ""),
+        status: String(payment.status || ""),
+        propertyName: String(property.property_name || ""),
+        unitName: String(unit.unit_name || ""),
+        allocationCount: paymentAllocations.length
+      };
+    });
+
+  var recentCapEx = capexRecords
+    .slice()
+    .sort(function (a, b) {
+      var aDate = a.start_date ? new Date(a.start_date).getTime() : 0;
+      var bDate = b.start_date ? new Date(b.start_date).getTime() : 0;
+      return bDate - aDate;
+    })
+    .slice(0, 10)
+    .map(function (item) {
+      var property = propertyById[item.property_id] || {};
+      var unit = unitById[item.unit_id] || {};
+      return {
+        capexId: String(item.capex_id),
+        propertyName: String(property.property_name || ""),
+        unitName: String(unit.unit_name || ""),
+        projectName: String(item.project_name || ""),
+        budget: item.budget === "" ? null : Number(item.budget || 0),
+        actualCost: item.actual_cost === "" ? null : Number(item.actual_cost || 0),
+        startDate: formatUiDate_(item.start_date),
+        completionDate: formatUiDate_(item.completion_date),
+        expectedUsefulLife: item.expected_useful_life === "" ? null : Number(item.expected_useful_life || 0),
+        notes: String(item.notes || "")
       };
     });
 
@@ -302,6 +389,8 @@ function getOperatorUiState(period) {
         };
       }),
     recentExpenses: recentExpenses,
+    recentPayments: recentPayments,
+    recentCapEx: recentCapEx,
     openWorkOrders: openWorkOrders,
     enums: {
       propertyTypes: REOS_ENUMS.propertyType,
@@ -408,6 +497,71 @@ function createWorkOrderFromOperatorUi(payload) {
 
 function generateChargesFromOperatorUi(period) {
   return serializeUiValue_(generateRentChargesForPeriod(period || currentPeriod_()));
+}
+
+function closeLeaseFromOperatorUi(payload) {
+  return serializeUiValue_(closeLease(payload || {}));
+}
+
+function settleDepositFromOperatorUi(payload) {
+  var data = payload || {};
+  return serializeUiValue_(
+    settleSecurityDeposit({
+      depositId: data.depositId,
+      returnAmount: data.returnAmount === "" ? 0 : Number(data.returnAmount || 0),
+      deductions: data.deductions === "" ? 0 : Number(data.deductions || 0),
+      returnDate: data.returnDate || new Date(),
+      reason: data.reason || ""
+    })
+  );
+}
+
+function reversePaymentFromOperatorUi(payload) {
+  return serializeUiValue_(reversePayment(payload || {}));
+}
+
+function transitionWorkOrderFromOperatorUi(payload) {
+  var data = payload || {};
+  return serializeUiValue_(
+    transitionWorkOrder(
+      data.workOrderId,
+      data.nextStatus,
+      {
+        vendorPartyId: data.vendorPartyId || "",
+        actualCost:
+          data.actualCost === "" || data.actualCost === undefined
+            ? ""
+            : Number(data.actualCost),
+        completedAt: data.completedAt || new Date()
+      }
+    )
+  );
+}
+
+function createCapExFromOperatorUi(payload) {
+  var data = payload || {};
+  return serializeUiValue_(
+    createCapEx({
+      propertyId: data.propertyId,
+      unitId: data.unitId || "",
+      projectName: data.projectName,
+      budget: data.budget === "" ? "" : Number(data.budget),
+      actualCost: data.actualCost === "" ? "" : Number(data.actualCost),
+      startDate: data.startDate || "",
+      completionDate: data.completionDate || "",
+      expectedUsefulLife:
+        data.expectedUsefulLife === "" ? "" : Number(data.expectedUsefulLife),
+      notes: data.notes || ""
+    })
+  );
+}
+
+function ensureOperationalTriggersFromUi() {
+  return serializeUiValue_(ensureOperationalTriggers());
+}
+
+function getOperationalTriggerStatusFromUi() {
+  return serializeUiValue_(getOperationalTriggerStatus());
 }
 
 function indexRecordsBy_(key, records) {
