@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <?!= includeOperatorFile_("OperatorStyles"); ?>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">REAL ESTATE OS</div>
+          <h1>Panel operativo</h1>
+          <div id="instanceMeta" class="muted">Cargando instancia…</div>
+        </div>
+        <div class="period-controls">
+          <input id="periodInput" type="month" aria-label="Periodo">
+          <button id="refreshBtn" class="button secondary" type="button">Actualizar</button>
+          <button id="generateBtn" class="button" type="button">Generar cargos</button>
+        </div>
+      </header>
+
+      <nav class="tabs" aria-label="Secciones">
+        <button class="tab active" data-tab="summary" type="button">Resumen</button>
+        <button class="tab" data-tab="payments" type="button">Cobros</button>
+        <button class="tab" data-tab="leases" type="button">Contratos</button>
+        <button class="tab" data-tab="expenses" type="button">Gastos</button>
+        <button class="tab" data-tab="maintenance" type="button">Mantenimiento</button>
+        <button class="tab" data-tab="catalog" type="button">Datos base</button>
+      </nav>
+
+      <main>
+        <section id="tab-summary" class="tab-panel active">
+          <div id="summaryCards" class="metric-grid"></div>
+
+          <div class="content-grid">
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Pendientes de cobro</h2>
+                  <p>Saldo derivado del ledger, no de una marca manual.</p>
+                </div>
+              </div>
+              <div id="summaryPending"></div>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Contratos activos</h2>
+                  <p>Unidades ocupadas y renta mensual vigente.</p>
+                </div>
+              </div>
+              <div id="summaryLeases"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-payments" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header">
+                <div>
+                  <h2>Registrar pago</h2>
+                  <p>El pago quedará asignado al cargo seleccionado.</p>
+                </div>
+              </div>
+              <form id="paymentForm" class="form-stack">
+                <label>
+                  Cargo pendiente
+                  <select id="paymentCharge" required></select>
+                </label>
+                <div id="paymentChargeInfo" class="selection-info"></div>
+                <div class="form-row">
+                  <label>
+                    Monto recibido
+                    <input id="paymentAmount" type="number" min="0.01" step="0.01" required>
+                  </label>
+                  <label>
+                    Fecha
+                    <input id="paymentDate" type="date" required>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>
+                    Método
+                    <select id="paymentMethod" required></select>
+                  </label>
+                  <label>
+                    Referencia
+                    <input id="paymentReference" type="text" maxlength="100">
+                  </label>
+                </div>
+                <label>
+                  Notas
+                  <textarea id="paymentNotes" rows="2" maxlength="500"></textarea>
+                </label>
+                <button class="button" type="submit">Registrar pago</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Cargos del periodo</h2>
+                  <p>OPEN, PARTIAL y PAID calculados desde asignaciones.</p>
+                </div>
+              </div>
+              <div id="chargesTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-leases" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header">
+                <div>
+                  <h2>Nuevo contrato</h2>
+                  <p>Crea Lease, LeaseParty y ocupa la unidad.</p>
+                </div>
+              </div>
+              <form id="leaseForm" class="form-stack">
+                <label>
+                  Propiedad
+                  <select id="leaseProperty" required></select>
+                </label>
+                <label>
+                  Unidad disponible
+                  <select id="leaseUnit" required></select>
+                </label>
+                <label>
+                  Inquilino
+                  <select id="leaseTenant" required></select>
+                </label>
+                <div class="form-row">
+                  <label>
+                    Inicio
+                    <input id="leaseStart" type="date" required>
+                  </label>
+                  <label>
+                    Fin
+                    <input id="leaseEnd" type="date" required>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>
+                    Renta mensual
+                    <input id="leaseRent" type="number" min="0" step="0.01" required>
+                  </label>
+                  <label>
+                    Depósito
+                    <input id="leaseDeposit" type="number" min="0" step="0.01">
+                  </label>
+                </div>
+                <label>
+                  Día límite de pago
+                  <input id="leaseDueDay" type="number" min="1" max="31" value="5" required>
+                </label>
+                <label>
+                  Regla de ajuste
+                  <input id="leaseAdjustment" type="text" placeholder="Ej. revisión anual">
+                </label>
+                <button class="button" type="submit">Crear contrato</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Contratos activos</h2>
+                  <p>Vista operativa del portafolio actual.</p>
+                </div>
+              </div>
+              <div id="leasesTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-expenses" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header">
+                <div>
+                  <h2>Registrar gasto</h2>
+                  <p>Gasto operativo separado de CapEx.</p>
+                </div>
+              </div>
+              <form id="expenseForm" class="form-stack">
+                <label>
+                  Propiedad
+                  <select id="expenseProperty" required></select>
+                </label>
+                <label>
+                  Unidad (opcional)
+                  <select id="expenseUnit"></select>
+                </label>
+                <label>
+                  Categoría
+                  <select id="expenseCategory" required></select>
+                </label>
+                <label>
+                  Descripción
+                  <input id="expenseDescription" type="text" required maxlength="200">
+                </label>
+                <div class="form-row">
+                  <label>
+                    Fecha
+                    <input id="expenseDate" type="date" required>
+                  </label>
+                  <label>
+                    Monto
+                    <input id="expenseAmount" type="number" min="0.01" step="0.01" required>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <label>
+                    Impuestos
+                    <input id="expenseTax" type="number" min="0" step="0.01" value="0">
+                  </label>
+                  <label>
+                    Método
+                    <select id="expenseMethod"></select>
+                  </label>
+                </div>
+                <button class="button" type="submit">Registrar gasto</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Gastos recientes</h2>
+                  <p>Últimos movimientos operativos registrados.</p>
+                </div>
+              </div>
+              <div id="expensesTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-maintenance" class="tab-panel">
+          <div class="two-column">
+            <section class="card sticky-card">
+              <div class="card-header">
+                <div>
+                  <h2>Nueva orden</h2>
+                  <p>Registra un incidente y comienza su flujo operativo.</p>
+                </div>
+              </div>
+              <form id="workOrderForm" class="form-stack">
+                <label>
+                  Propiedad
+                  <select id="workProperty" required></select>
+                </label>
+                <label>
+                  Unidad (opcional)
+                  <select id="workUnit"></select>
+                </label>
+                <label>
+                  Reportado por (opcional)
+                  <select id="workReportedBy"></select>
+                </label>
+                <div class="form-row">
+                  <label>
+                    Categoría
+                    <input id="workCategory" type="text" required placeholder="Ej. PLUMBING">
+                  </label>
+                  <label>
+                    Prioridad
+                    <select id="workPriority" required></select>
+                  </label>
+                </div>
+                <label>
+                  Descripción
+                  <textarea id="workDescription" rows="3" required maxlength="500"></textarea>
+                </label>
+                <label>
+                  Costo estimado
+                  <input id="workEstimatedCost" type="number" min="0" step="0.01">
+                </label>
+                <button class="button" type="submit">Crear orden</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Mantenimiento abierto</h2>
+                  <p>Órdenes aún no completadas ni canceladas.</p>
+                </div>
+              </div>
+              <div id="workOrdersTable"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="tab-catalog" class="tab-panel">
+          <div class="catalog-grid">
+            <section class="card">
+              <div class="card-header"><div><h2>Nueva persona / organización</h2><p>Parties es el catálogo común de actores.</p></div></div>
+              <form id="partyForm" class="form-stack">
+                <label>Tipo
+                  <select id="partyType">
+                    <option value="PERSON">Persona</option>
+                    <option value="ORGANIZATION">Organización</option>
+                  </select>
+                </label>
+                <label>Nombre legal
+                  <input id="partyLegalName" type="text" required>
+                </label>
+                <label>Nombre preferido
+                  <input id="partyPreferredName" type="text">
+                </label>
+                <label>Correo
+                  <input id="partyEmail" type="email">
+                </label>
+                <label>Teléfono
+                  <input id="partyPhone" type="text">
+                </label>
+                <button class="button" type="submit">Crear parte</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header"><div><h2>Nueva propiedad</h2><p>Alta del activo principal.</p></div></div>
+              <form id="propertyForm" class="form-stack">
+                <label>Nombre
+                  <input id="propertyName" type="text" required>
+                </label>
+                <label>Tipo
+                  <select id="propertyType" required></select>
+                </label>
+                <label>Municipio / alcaldía
+                  <input id="propertyMunicipality" type="text" required>
+                </label>
+                <label>Estado
+                  <input id="propertyState" type="text" required value="Ciudad de México">
+                </label>
+                <label>Colonia
+                  <input id="propertyNeighborhood" type="text">
+                </label>
+                <label>Calle
+                  <input id="propertyStreet" type="text">
+                </label>
+                <button class="button" type="submit">Crear propiedad</button>
+              </form>
+            </section>
+
+            <section class="card">
+              <div class="card-header"><div><h2>Nueva unidad</h2><p>Espacio rentable dentro de una propiedad.</p></div></div>
+              <form id="unitForm" class="form-stack">
+                <label>Propiedad
+                  <select id="unitProperty" required></select>
+                </label>
+                <label>Nombre de unidad
+                  <input id="unitName" type="text" required placeholder="Ej. Depto 3B">
+                </label>
+                <label>Tipo
+                  <select id="unitType" required></select>
+                </label>
+                <div class="form-row">
+                  <label>Recámaras
+                    <input id="unitBedrooms" type="number" min="0" step="1">
+                  </label>
+                  <label>Baños
+                    <input id="unitBathrooms" type="number" min="0" step="0.5">
+                  </label>
+                </div>
+                <label>Área m²
+                  <input id="unitArea" type="number" min="0.01" step="0.01">
+                </label>
+                <button class="button" type="submit">Crear unidad</button>
+              </form>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <div id="loadingText">Procesando…</div>
+    </div>
+    <div id="toast" class="toast hidden"></div>
+
+    <?!= includeOperatorFile_("OperatorClient"); ?>
+  </body>
+</html>
