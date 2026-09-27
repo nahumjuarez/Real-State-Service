@@ -92,6 +92,49 @@ function getOperatorUiState(period) {
       return (order[a.status] || 9) - (order[b.status] || 9);
     });
 
+  var outstandingChargeRows = charges
+    .filter(function (charge) {
+      return String(charge.status) !== "VOID";
+    })
+    .map(function (charge) {
+      var lease = leaseById[charge.lease_id] || {};
+      var unit = unitById[lease.unit_id] || {};
+      var property = propertyById[unit.property_id] || {};
+      var tenantIds = tenantIdsByLease[lease.lease_id] || [];
+      var tenantNames = tenantIds.map(function (partyId) {
+        var party = partyById[partyId] || {};
+        return party.preferred_name || party.legal_name || partyId;
+      });
+      var tenantId = tenantIds.length ? tenantIds[0] : "";
+      var allocated = Number(allocatedByCharge[charge.charge_id] || 0);
+      var currentAmount = Number(charge.current_amount || 0);
+      var outstanding = Math.max(currentAmount - allocated, 0);
+
+      return {
+        chargeId: String(charge.charge_id),
+        leaseId: String(charge.lease_id),
+        propertyId: String(unit.property_id || ""),
+        propertyName: String(property.property_name || ""),
+        unitId: String(unit.unit_id || ""),
+        unitName: String(unit.unit_name || ""),
+        tenantId: String(tenantId || ""),
+        tenantName: tenantNames.join(", "),
+        period: String(charge.period),
+        dueDate: formatUiDate_(charge.due_date),
+        currentAmount: currentAmount,
+        allocatedAmount: allocated,
+        outstandingAmount: outstanding,
+        status: computeChargeStatus_(charge, allocated)
+      };
+    })
+    .filter(function (charge) {
+      return charge.outstandingAmount > 0;
+    })
+    .sort(function (a, b) {
+      if (a.period !== b.period) return b.period.localeCompare(a.period);
+      return a.dueDate.localeCompare(b.dueDate);
+    });
+
   var activeLeases = leases
     .filter(function (lease) {
       return ["ACTIVE", "EXPIRING"].indexOf(String(lease.status)) !== -1;
@@ -199,6 +242,7 @@ function getOperatorUiState(period) {
     pendingCharges: chargeRows.filter(function (charge) {
       return charge.outstandingAmount > 0;
     }),
+    outstandingCharges: outstandingChargeRows,
     activeLeases: activeLeases,
     properties: properties
       .filter(function (property) {
