@@ -1,4 +1,4 @@
-var REOS_SCHEMA_VERSION = "0.1.0";
+var REOS_SCHEMA_VERSION = "0.2.0";
 
 var REOS_TYPES = [
   "ID", "STRING", "ENUM", "DATE", "DATETIME", "MONEY",
@@ -71,7 +71,15 @@ var REOS_ENUMS = {
   ],
   dealDecision: ["ACQUIRE", "REJECT", "HOLD", "LOST"],
   sourceType: ["OBSERVED", "ASSUMPTION", "FORECAST"],
-  scenarioType: ["BEAR", "BASE", "BULL", "CUSTOM"]
+  scenarioType: ["BEAR", "BASE", "BULL", "CUSTOM"],
+  accessType: [
+    "BUILDING_ENTRY", "UNIT_ENTRY", "WIFI", "ALARM", "LOCKBOX",
+    "UTILITY_PORTAL", "HOA_PORTAL", "DEVICE", "OTHER"
+  ],
+  vaultProvider: [
+    "GOOGLE_PASSWORD_MANAGER", "1PASSWORD", "BITWARDEN", "OTHER"
+  ],
+  accessProfileStatus: ["ACTIVE", "INACTIVE"]
 };
 
 var REOS_SCHEMA = [
@@ -126,6 +134,25 @@ var REOS_SCHEMA = [
       reosColumn_("area_m2", "Área m²", "NUMBER"),
       reosColumn_("rentable_area_m2", "Área rentable m²", "NUMBER"),
       reosColumn_("status", "Estado", "ENUM", { required: true, enumValues: REOS_ENUMS.unitStatus }),
+      reosColumn_("created_at", "Creado", "DATETIME", { required: true }),
+      reosColumn_("updated_at", "Actualizado", "DATETIME", { required: true })
+    ]
+  },
+  {
+    name: "AccessProfiles",
+    description: "Referencias no secretas a accesos físicos y digitales. Las contraseñas, PINs, códigos y tokens deben permanecer en un gestor de contraseñas.",
+    primaryKey: "access_profile_id",
+    columns: [
+      reosColumn_("access_profile_id", "ID acceso", "ID", { required: true }),
+      reosColumn_("property_id", "Propiedad", "ID", { required: true, foreignKey: "Properties.property_id" }),
+      reosColumn_("unit_id", "Unidad", "ID", { foreignKey: "Units.unit_id" }),
+      reosColumn_("access_type", "Tipo de acceso", "ENUM", { required: true, enumValues: REOS_ENUMS.accessType }),
+      reosColumn_("label", "Etiqueta", "STRING", { required: true }),
+      reosColumn_("login_identifier", "Usuario / identificador", "STRING"),
+      reosColumn_("vault_provider", "Gestor de contraseñas", "ENUM", { required: true, enumValues: REOS_ENUMS.vaultProvider }),
+      reosColumn_("vault_item_reference", "Referencia en bóveda", "STRING"),
+      reosColumn_("instructions", "Instrucciones no secretas", "STRING"),
+      reosColumn_("status", "Estado", "ENUM", { required: true, enumValues: REOS_ENUMS.accessProfileStatus }),
       reosColumn_("created_at", "Creado", "DATETIME", { required: true }),
       reosColumn_("updated_at", "Actualizado", "DATETIME", { required: true })
     ]
